@@ -9,7 +9,7 @@ cd k8s
 # Install ArgoCD into the Kubernetes cluster
 kubectl apply --kustomize argocd
 
-# Install the ArgoCD Application that contains all of the Applications in this repo
+# Install this repo as an ArgoCD Application
 kubectl apply applications.yaml
 ```
 
