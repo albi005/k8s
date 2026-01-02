@@ -6,7 +6,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: quay.io/jetstack/charts/cert-manager
+    repoURL: quay.io/jetstack/charts
     chart: cert-manager
     targetRevision: v1.19.2
   destination:
