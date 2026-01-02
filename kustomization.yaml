@@ -1,5 +1,5 @@
 resources:
-  - applications.yaml
+  - application.yaml
   - argocd/application.yaml
   - cnpg/application.yaml
   - startsch/application.yaml

@@ -10,7 +10,7 @@ cd k8s
 kubectl apply --kustomize argocd
 
 # Install this repo as an ArgoCD Application
-kubectl apply applications.yaml
+kubectl apply -f application.yaml
 ```
 
 ## Documentation
