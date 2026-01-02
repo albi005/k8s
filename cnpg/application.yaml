@@ -11,10 +11,14 @@ spec:
     repoURL: https://cloudnative-pg.github.io/charts
     chart: cloudnative-pg
     targetRevision: 0.27.0
-    namespace: cnpg-system
     helm:
       # https://argo-cd.readthedocs.io/en/stable/user-guide/helm/#values
       valuesObject:
         # CNPG operator Helm chart values here
   destination:
     name: in-cluster
+    namespace: cnpg-system
+  syncPolicy:
+    syncOptions:
+    - CreateNamespace=true
+    - ServerSideApply=true
