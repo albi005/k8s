@@ -1,0 +1,12 @@
+kind: Application
+apiVersion: argoproj.io/v1alpha1
+metadata:
+  name: startsch
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/albi005/k8s
+    path: startsch
+  destination:
+    name: in-cluster
