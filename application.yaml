@@ -10,6 +10,3 @@ spec:
     path: .
   destination:
     name: in-cluster
-
----
-
