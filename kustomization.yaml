@@ -1,5 +1,6 @@
 resources:
   - application.yaml
   - argocd/application.yaml
+  - cert-manager/application.yaml
   - cnpg/application.yaml
   - startsch/application.yaml
