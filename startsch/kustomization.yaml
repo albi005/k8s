@@ -1,2 +1,2 @@
 resources:
-  - https://github.com/kir-dev/StartSCH//.config/kubernetes.yaml
+  - https://raw.githubusercontent.com/kir-dev/StartSCH/refs/heads/main/.config/kubernetes.yaml
