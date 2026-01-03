@@ -1,5 +1,6 @@
 resources:
   - argocd/application.yaml
   - cert-manager/application.yaml
+  - cnpg-barman-cloud-plugin/application.yaml
   - cnpg/application.yaml
   - startsch/application.yaml
