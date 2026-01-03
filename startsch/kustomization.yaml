@@ -9,9 +9,3 @@ patches:
       version: v1
       kind: PodMonitor
       name: startsch
-    patch: |-
-      apiVersion: monitoring.coreos.com/v1
-      kind: PodMonitor
-      metadata:
-        name: startsch
-      $patch: delete
