@@ -1,0 +1,27 @@
+
+# https://cert-manager.io/docs/installation/helm/#installing-from-the-oci-registry
+
+kind: Application
+apiVersion: argoproj.io/v1alpha1
+metadata:
+  name: cert-manager
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://grafana.github.io/helm-charts
+    chart: lgtm-distributed
+    targetRevision: 2.1.0
+    helm:
+      parameters:
+        - name: installCRDs
+          value: "true"
+  destination:
+    name: in-cluster
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      enabled: true
+    syncOptions:
+    - ServerSideApply=true
