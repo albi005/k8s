@@ -4,7 +4,7 @@
 kind: Application
 apiVersion: argoproj.io/v1alpha1
 metadata:
-  name: cert-manager
+  name: lgtm
   namespace: argocd
 spec:
   project: default
