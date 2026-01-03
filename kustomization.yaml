@@ -3,4 +3,5 @@ resources:
   - cert-manager/application.yaml
   - cnpg-barman-cloud-plugin/application.yaml
   - cnpg/application.yaml
+  - opentelemetry-operator/application.yaml
   - startsch/application.yaml
