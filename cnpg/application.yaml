@@ -19,6 +19,10 @@ spec:
     name: in-cluster
     namespace: cnpg-system
   syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      enabled: true
     syncOptions:
     - CreateNamespace=true
     - ServerSideApply=true
