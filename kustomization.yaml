@@ -5,3 +5,4 @@ resources:
   - cnpg/application.yaml
   # - opentelemetry-operator/application.yaml
   - startsch/application.yaml
+  - prometheus/application.yaml

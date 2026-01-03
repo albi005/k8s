@@ -1,13 +1,13 @@
 kind: Application
 apiVersion: argoproj.io/v1alpha1
 metadata:
-  name: applications
+  name: prometheus
   namespace: argocd
 spec:
   project: default
   source:
     repoURL: https://github.com/albi005/k8s
-    path: .
+    path: prometheus
   destination:
     name: in-cluster
   syncPolicy:
@@ -16,4 +16,5 @@ spec:
       selfHeal: true
       enabled: true
     syncOptions:
+    - CreateNamespace=true
     - ServerSideApply=true
