@@ -37,4 +37,4 @@ spec:
     kind: Deployment
     name: signoz-clickhouse-operator
     jqPathExpressions:
-    - .spec.template.spec.containers[].env[].valueFrom.resourceFieldRef.divisor
+    - .spec.template.spec.containers[].env[] | select(.valueFrom.resourceFieldRef != null) | .valueFrom.resourceFieldRef.divisor
