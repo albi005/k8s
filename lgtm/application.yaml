@@ -33,3 +33,8 @@ spec:
     jsonPointers:
     - /spec/volumeClaimTemplates/0/apiVersion
     - /spec/volumeClaimTemplates/0/kind
+  - group: apps
+    kind: Deployment
+    name: signoz-clickhouse-operator
+    jqPathExpressions:
+    - .spec.template.spec.containers[].env[].valueFrom.resourceFieldRef.divisor
