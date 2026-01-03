@@ -27,7 +27,7 @@ spec:
     - ServerSideApply=true
     - CreateNamespace=true
   ignoreDifferences:
-  # the helm chart defines apiVersion and kind fields but k8s seems to remove them causing a desync. ignore
+  # k8s automatically adds these fields causing a desync. ignore
   - group: apps
     kind: StatefulSet
     jsonPointers:
