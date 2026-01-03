@@ -16,6 +16,10 @@ spec:
     name: in-cluster
     namespace: cert-manager
   syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      enabled: true
     syncOptions:
     - CreateNamespace=true
     - ServerSideApply=true
