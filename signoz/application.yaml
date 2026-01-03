@@ -1,0 +1,24 @@
+kind: Application
+apiVersion: argoproj.io/v1alpha1
+metadata:
+  name: signoz
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://charts.signoz.io
+    targetRevision: 0.79.0
+    chart: signoz
+  destination:
+    server: in-cluster
+    namespace: signoz
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      enabled: true
+    syncOptions:
+    - CreateNamespace=true
+    - ServerSideApply=true
