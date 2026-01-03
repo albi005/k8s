@@ -10,3 +10,11 @@ spec:
     path: argocd
   destination:
     name: in-cluster
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      enabled: true
+    syncOptions:
+    - CreateNamespace=true
+    - ServerSideApply=true
