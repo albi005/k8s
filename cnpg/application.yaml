@@ -13,7 +13,7 @@ spec:
     targetRevision: 0.27.0
     helm:
       # https://argo-cd.readthedocs.io/en/stable/user-guide/helm/#values
-      valuesObject:
+      valuesObject: {}
         # CNPG operator Helm chart values here
   destination:
     name: in-cluster
