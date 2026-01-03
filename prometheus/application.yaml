@@ -3,6 +3,8 @@ apiVersion: argoproj.io/v1alpha1
 metadata:
   name: prometheus
   namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
   source:
