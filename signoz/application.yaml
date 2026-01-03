@@ -12,7 +12,7 @@ spec:
     targetRevision: 0.79.0
     chart: signoz
   destination:
-    server: in-cluster
+    name: in-cluster
     namespace: signoz
   syncPolicy:
     automated:
