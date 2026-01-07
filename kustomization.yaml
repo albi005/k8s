@@ -8,4 +8,4 @@ resources:
   # - prometheus/application.yaml
   - lgtm/application.yaml
   # - signoz/application.yaml
-  - vcluster/application.yaml
+  # - vcluster/application.yaml
