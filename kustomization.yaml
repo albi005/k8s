@@ -7,4 +7,5 @@ resources:
   - startsch/application.yaml
   # - prometheus/application.yaml
   - lgtm/application.yaml
-  - signoz/application.yaml
+  # - signoz/application.yaml
+  - vcluster/application.yaml
