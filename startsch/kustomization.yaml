@@ -15,3 +15,13 @@ patches:
     patch: |-
       - op: remove
         path: /spec/storage/storageClass
+  - target:
+      group: monitoring.coreos.com
+      version: v1
+      kind: PodMonitor
+      name: startsch
+      namespace: kube-prometheus-stack
+    patch: |-
+      - op: replace
+        path: /metadata/namespace
+        value: monitoring
