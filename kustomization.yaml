@@ -8,6 +8,6 @@ resources:
   # - opentelemetry-operator/application.yaml
   - startsch/application.yaml
   # - prometheus/application.yaml
-  - lgtm/application.yaml
+  # - lgtm/application.yaml
   # - signoz/application.yaml
   # - vcluster/application.yaml
