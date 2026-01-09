@@ -37,7 +37,7 @@ spec:
             
             # 2. Logs -> Loki
             otlphttp/loki:
-              endpoint: "http://loki.monitoring.svc.cluster.local:3100/otlp"
+              endpoint: "http://loki.monitoring.svc.cluster.local:3200/otlp"
               tls:
                 insecure: true
 
