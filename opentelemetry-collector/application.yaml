@@ -15,7 +15,7 @@ spec:
       valuesObject:
         mode: deployment
         image:
-          repository: "ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-k8s"
+          repository: otel/opentelemetry-collector-contrib
         config:
           receivers:
             otlp:
