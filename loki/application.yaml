@@ -94,7 +94,7 @@ spec:
           replicas: 0
   destination:
     name: in-cluster
-    namespace: cert-manager
+    namespace: monitoring
   syncPolicy:
     automated:
       prune: true

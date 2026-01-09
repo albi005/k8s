@@ -24,7 +24,7 @@ spec:
               path: /var/tempo/traces
   destination:
     name: in-cluster
-    namespace: cert-manager
+    namespace: monitoring
   syncPolicy:
     automated:
       prune: true
