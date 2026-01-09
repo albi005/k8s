@@ -3,8 +3,6 @@ resources:
   # https://github.com/renovatebot/renovate/discussions/17318
   - https://raw.githubusercontent.com/kir-dev/StartSCH/refs/heads/main/.config/kubernetes.yaml
 
-namespace: startsch
-
 patches:
   - target:
       group: postgresql.cnpg.io
