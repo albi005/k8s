@@ -15,6 +15,7 @@ spec:
       valuesObject:
         # https://github.com/grafana/loki/blob/533b1f0ae8696a6d2b7f83e65e90337ac862f77c/production/helm/loki/single-binary-values.yaml
         loki:
+          auth_enabled: false
           commonConfig:
             replication_factor: 1
           schemaConfig:
