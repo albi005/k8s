@@ -4,7 +4,7 @@ resources:
   - cnpg-barman-cloud-plugin/application.yaml
   - cnpg/application.yaml
   - kube-prometheus-stack/application.yaml
-  - metrics-server/application.yaml
+  # - metrics-server/application.yaml
   # - opentelemetry-operator/application.yaml
   - startsch/application.yaml
   # - prometheus/application.yaml
