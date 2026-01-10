@@ -22,4 +22,4 @@ patches:
     patch: |-
       - op: replace
         path: /metadata/namespace
-        value: kube-prom-stack
+        value: monitoring
