@@ -24,3 +24,10 @@ patches:
       - op: replace
         path: /metadata/namespace
         value: monitoring
+  - target:
+      kind: ServiceMonitor 
+      group: monitoring.coreos.com
+    patch: |-
+      - op: add
+        path: /metadata/labels/release
+        value: kube-prom-stack
