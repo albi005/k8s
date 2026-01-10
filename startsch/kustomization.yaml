@@ -25,7 +25,7 @@ patches:
         path: /metadata/namespace
         value: monitoring
   - target:
-      kind: ServiceMonitor 
+      kind: PodMonitor
       group: monitoring.coreos.com
     patch: |-
       - op: add
