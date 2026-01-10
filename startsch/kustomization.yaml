@@ -26,8 +26,9 @@ patches:
         value: monitoring
   - target:
       kind: PodMonitor
-      group: monitoring.coreos.com
+      name: startsch
     patch: |-
       - op: add
-        path: /metadata/labels/release
-        value: kube-prom-stack
+        path: /metadata/labels
+        value:
+          release: kube-prom-stack
