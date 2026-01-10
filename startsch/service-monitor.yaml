@@ -6,6 +6,9 @@ metadata:
   labels:
     release: kube-prom-stack
 spec:
+  selector:
+    matchLabels:
+      release: kube-prom-stack
   namespaceSelector:
     matchNames:
       - startsch

@@ -32,3 +32,13 @@ patches:
         path: /metadata/labels
         value:
           release: kube-prom-stack
+  - target:
+      kind: Service
+      name: startsch
+    patch: |-
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: startsch
+        labels:
+          release: kube-prom-stack
