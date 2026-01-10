@@ -18,8 +18,8 @@ patches:
       version: v1
       kind: PodMonitor
       name: startsch
-      namespace: kube-prom-stack
+      namespace: kube-prometheus-stack
     patch: |-
       - op: replace
         path: /metadata/namespace
-        value: monitoring
+        value: kube-prom-stack
