@@ -1,0 +1,18 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: startsch
+  namespace: monitoring
+  labels:
+    release: kube-prom-stack
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: startsch
+      app.kubernetes.io/component: server
+  namespaceSelector:
+    matchNames:
+      - startsch
+  endpoints:
+    - port: http
+      path: /metrics
