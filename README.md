@@ -3,6 +3,10 @@
 ## Bootstrapping
 
 ```bash
+k3d cluster create mycluster --image rancher/k3s:v1.29.6-k3s1
+
+vcluster create vc-1
+
 git clone https://github.com/kir-dev/k8s
 cd k8s
 

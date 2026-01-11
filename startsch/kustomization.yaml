@@ -42,3 +42,10 @@ patches:
         name: startsch
         labels:
           release: kube-prom-stack
+  - target:
+      kind: Cluster
+      name: startsch-db
+    patch: |-
+      - op: add
+        path: /spec/plugins/0/enabled
+        value: true
