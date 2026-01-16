@@ -49,3 +49,10 @@ patches:
       - op: add
         path: /spec/plugins/0/enabled
         value: true
+  - target:
+      kind: ConfigMap
+      name: startsch-config
+    patch: |-
+      - op: add
+        path: /data/OTEL_EXPORTER_OTLP_ENDPOINT
+        value: http://otel-collector-opentelemetry-collector.monitoring.svc.cluster.local:4317

@@ -31,19 +31,19 @@ spec:
           exporters:
             # 1. Traces -> Tempo
             otlp/tempo:
-              endpoint: "tempo.monitoring.svc.cluster.local:4317"
+              endpoint: tempo.monitoring.svc.cluster.local:4317
               tls:
                 insecure: true
             
             # 2. Logs -> Loki
             otlphttp/loki:
-              endpoint: "http://loki.monitoring.svc.cluster.local:3100/otlp"
+              endpoint: http://loki.monitoring.svc.cluster.local:3100/otlp
               tls:
                 insecure: true
 
             # 3. Metrics -> Prometheus (Remote Write is easiest)
             prometheusremotewrite:
-              endpoint: "http://kube-prom-stack-prometheus.monitoring.svc.cluster.local:9090/api/v1/write"
+              endpoint: http://kube-prom-stack-prometheus.monitoring.svc.cluster.local:9090/api/v1/write
 
           service:
             pipelines:
