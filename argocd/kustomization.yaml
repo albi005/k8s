@@ -6,4 +6,37 @@ resources:
 # automatically to the latest commit of the `stable` branch
 - https://github.com/argoproj/argo-cd//manifests/cluster-install?ref=stable
 
+patches:
+# GROUP 1: Heavy Components
+# (Repo Server, API Server, App Controller need more RAM/CPU)
+- target:
+    kind: (Deployment|StatefulSet)
+    name: (argocd-repo-server|argocd-server|argocd-application-controller)
+  patch: |-
+    - op: add
+      path: /spec/template/spec/containers/0/resources
+      value:
+        requests:
+          cpu: "50m"
+          memory: "128Mi"
+        limits:
+          cpu: "1000m"
+          memory: "1Gi"
+
+# GROUP 2: Light Components
+# (Redis, Dex, Notifications, AppSet need very little)
+- target:
+    kind: Deployment
+    name: (argocd-redis|argocd-dex-server|argocd-notifications-controller|argocd-applicationset-controller)
+  patch: |-
+    - op: add
+      path: /spec/template/spec/containers/0/resources
+      value:
+        requests:
+          cpu: "10m"
+          memory: "64Mi"
+        limits:
+          cpu: "200m"
+          memory: "256Mi"
+
 namespace: argocd
