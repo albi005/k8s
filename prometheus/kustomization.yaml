@@ -1,2 +1,0 @@
-resources:
-  - https://github.com/prometheus-operator/prometheus-operator/releases/download/v0.87.1/bundle.yaml
