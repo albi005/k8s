@@ -1,0 +1,20 @@
+namespace: monitoring
+helmCharts:
+  - name: kube-prometheus-stack
+    repo: https://prometheus-community.github.io/helm-charts
+    version: 80.13.3
+    releaseName: kube-prometheus-stack
+    namespace: monitoring
+    valuesInline:
+      grafana:
+        additionalDataSources:
+          - name: Loki
+            type: loki
+            url: http://loki-gateway.monitoring.svc.cluster.local
+          - name: Tempo
+            type: tempo
+            url: http://tempo.monitoring.svc.cluster.local:3200
+      prometheus:
+        prometheusSpec:
+          serviceMonitorSelectorNilUsesHelmValues: false
+          selector: {}

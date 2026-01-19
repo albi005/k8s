@@ -5,21 +5,13 @@ metadata:
   namespace: argocd
 spec:
   goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
   generators:
-    - merge:
-        mergeKeys:
-          - path.basename
-        generators:
-          - git:
-              repoURL: https://github.com/albi005/k8s
-              revision: HEAD
-              directories:
-                - path: "*"
-          - git:
-              repoURL: https://github.com/albi005/k8s
-              revision: HEAD
-              files:
-                - path: "*/app-config.yaml"
+    - git:
+        repoURL: https://github.com/albi005/k8s
+        revision: HEAD
+        directories:
+          - path: "*"
   template:
     metadata:
       name: "{{.path.basename}}"
@@ -32,7 +24,6 @@ spec:
         path: "{{.path.path}}"
       destination:
         name: in-cluster
-        namespace: '{{.namespace}}'
       syncPolicy:
         automated:
           prune: true

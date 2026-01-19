@@ -1,0 +1,16 @@
+namespace: monitoring
+helmCharts:
+  - name: tempo
+    repo: https://grafana.github.io/helm-charts
+    version: 1.24.1
+    releaseName: tempo
+    namespace: monitoring
+    valuesInline:
+      tempo:
+        repository: grafana/tempo
+        tag: latest
+      storage:
+        trace:
+          backend: local
+          local:
+            path: /var/tempo/traces
