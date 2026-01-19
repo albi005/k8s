@@ -1,42 +1,51 @@
 # https://argo-cd.readthedocs.io/en/stable/operator-manual/declarative-setup/#manage-argo-cd-using-argo-cd
 
 resources:
-- namespace.yaml
-# TODO: Replace `stable` with a git commit hash and let Renovate update it
-# automatically to the latest commit of the `stable` branch
-- https://github.com/argoproj/argo-cd//manifests/cluster-install?ref=stable
+  - ./namespace.yaml
+  # TODO: Replace `stable` with a git commit hash and let Renovate update it
+  # automatically to the latest commit of the `stable` branch
+  - https://github.com/argoproj/argo-cd//manifests/cluster-install?ref=stable
 
 patches:
-# GROUP 1: Heavy Components
-# (Repo Server, API Server, App Controller need more RAM/CPU)
-- target:
-    kind: (Deployment|StatefulSet)
-    name: (argocd-repo-server|argocd-server|argocd-application-controller)
-  patch: |-
-    - op: add
-      path: /spec/template/spec/containers/0/resources
-      value:
-        requests:
-          cpu: "50m"
-          memory: "128Mi"
-        limits:
-          cpu: "1000m"
-          memory: "1Gi"
+  # https://argo-cd.readthedocs.io/en/stable/user-guide/kustomize/#kustomizing-helm-charts
+  - target:
+      kind: ConfigMap
+      name: argocd-cm
+    patch: |-
+      - op: add
+        path: /data/kustomize.buildOptions
+        value: "--enable-helm"
 
-# GROUP 2: Light Components
-# (Redis, Dex, Notifications, AppSet need very little)
-- target:
-    kind: Deployment
-    name: (argocd-redis|argocd-dex-server|argocd-notifications-controller|argocd-applicationset-controller)
-  patch: |-
-    - op: add
-      path: /spec/template/spec/containers/0/resources
-      value:
-        requests:
-          cpu: "10m"
-          memory: "64Mi"
-        limits:
-          cpu: "200m"
-          memory: "256Mi"
+  # GROUP 1: Heavy Components
+  # (Repo Server, API Server, App Controller need more RAM/CPU)
+  - target:
+      kind: (Deployment|StatefulSet)
+      name: (argocd-repo-server|argocd-server|argocd-application-controller)
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            cpu: "50m"
+            memory: "128Mi"
+          limits:
+            cpu: "1000m"
+            memory: "1Gi"
+
+  # GROUP 2: Light Components
+  # (Redis, Dex, Notifications, AppSet need very little)
+  - target:
+      kind: Deployment
+      name: (argocd-redis|argocd-dex-server|argocd-notifications-controller|argocd-applicationset-controller)
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            cpu: "10m"
+            memory: "64Mi"
+          limits:
+            cpu: "200m"
+            memory: "256Mi"
 
 namespace: argocd
