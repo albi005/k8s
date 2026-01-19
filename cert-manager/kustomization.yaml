@@ -8,4 +8,8 @@ helmCharts:
     releaseName: cert-manager
     namespace: cert-manager
     valuesInline:
-      installCRDs: true
+      crds:
+        enabled: true
+      global:
+        leaderElection:
+          namespace: cert-manager
