@@ -1,7 +1,7 @@
 # https://argo-cd.readthedocs.io/en/stable/operator-manual/declarative-setup/#manage-argo-cd-using-argo-cd
 
 resources:
-  - ./namespace.yaml
+  - namespace.yaml
   # TODO: Replace `stable` with a git commit hash and let Renovate update it
   # automatically to the latest commit of the `stable` branch
   - https://github.com/argoproj/argo-cd//manifests/cluster-install?ref=stable
