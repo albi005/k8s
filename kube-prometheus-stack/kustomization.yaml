@@ -8,14 +8,9 @@ helmCharts:
     includeCRDs: true
     valuesInline:
       grafana:
-        # ----------------------------------------------------
-        # 1. FIXED PASSWORD (STOPS THE INFINITE SYNC LOOP)
-        # ----------------------------------------------------
+        # set a default password otherwise helm makes things non-reproducible by generating a random password
         adminPassword: "admin"
         
-        # ----------------------------------------------------
-        # 2. RESOURCE LIMITS (PREVENTS CRASHES ON STARTUP)
-        # ----------------------------------------------------
         resources:
           limits:
             memory: 1Gi
