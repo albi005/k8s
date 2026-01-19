@@ -1,0 +1,10 @@
+tempo:
+  tempo:
+    repository: grafana/tempo
+    tag: latest
+  # Minimal storage config for local running
+  storage:
+    trace:
+      backend: local
+      local:
+        path: /var/tempo/traces
