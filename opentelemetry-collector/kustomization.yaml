@@ -5,6 +5,7 @@ helmCharts:
     version: 0.143.0
     releaseName: opentelemetry-collector
     namespace: monitoring
+    includeCRDs: true
     valuesInline:
       mode: deployment
       image:

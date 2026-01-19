@@ -5,6 +5,7 @@ helmCharts:
     version: 80.13.3
     releaseName: kube-prometheus-stack
     namespace: monitoring
+    includeCRDs: true
     valuesInline:
       grafana:
         additionalDataSources:

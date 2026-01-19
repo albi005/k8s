@@ -5,6 +5,7 @@ helmCharts:
     version: 6.49.0
     releaseName: loki
     namespace: monitoring
+    includeCRDs: true
     valuesInline:
       loki:
         auth_enabled: false
