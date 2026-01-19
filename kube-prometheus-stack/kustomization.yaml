@@ -8,6 +8,21 @@ helmCharts:
     includeCRDs: true
     valuesInline:
       grafana:
+        # ----------------------------------------------------
+        # 1. FIXED PASSWORD (STOPS THE INFINITE SYNC LOOP)
+        # ----------------------------------------------------
+        adminPassword: "admin"
+        
+        # ----------------------------------------------------
+        # 2. RESOURCE LIMITS (PREVENTS CRASHES ON STARTUP)
+        # ----------------------------------------------------
+        resources:
+          limits:
+            memory: 1Gi
+          requests:
+            cpu: 100m
+            memory: 512Mi
+
         additionalDataSources:
           - name: Loki
             type: loki
