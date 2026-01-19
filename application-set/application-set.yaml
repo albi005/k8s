@@ -7,19 +7,21 @@ spec:
   goTemplate: true
   goTemplateOptions: ["missingkey=error"]
   generators:
-  - git:
-      repoURL: https://github.com/albi005/k8s
-      revision: HEAD
-      directories:
-      - path: "*"
+    - git:
+        repoURL: https://github.com/albi005/k8s
+        revision: HEAD
+        directories:
+          - path: "*"
   template:
     metadata:
-      name: '{{.path.basename}}'
+      name: "{{.path.basename}}"
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
     spec:
       project: default
       source:
         repoURL: https://github.com/albi005/k8s
-        path: '{{.path.path}}'
+        path: "{{.path.path}}"
       destination:
         name: in-cluster
       syncPolicy:
@@ -27,4 +29,4 @@ spec:
           prune: true
           selfHeal: true
         syncOptions:
-        - ServerSideApply=true
+          - ServerSideApply=true
