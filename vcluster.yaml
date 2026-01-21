@@ -1,0 +1,17 @@
+# controlPlane:
+#   statefulSet:
+#     persistence:
+#       volumeClaim:
+#         storageClass: memory-ssd
+integrations:
+  metricsServer:
+    enabled: true
+logging:
+  encoding: json
+policies:
+  networkPolicy:
+    enabled: false
+sync:
+  toHost:
+    networkPolicies:
+      enabled: true

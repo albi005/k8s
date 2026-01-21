@@ -1,16 +1,15 @@
+# https://cert-manager.io/docs/installation/helm/
+# https://artifacthub.io/packages/helm/cert-manager/cert-manager
+
 namespace: cert-manager
+
 resources:
   - namespace.yaml
+
 helmCharts:
   - name: cert-manager
     repo: oci://quay.io/jetstack/charts
     version: v1.19.2
     releaseName: cert-manager
     namespace: cert-manager
-    includeCRDs: true
-    valuesInline:
-      crds:
-        enabled: true
-      global:
-        leaderElection:
-          namespace: cert-manager
+    valuesFile: values.yaml

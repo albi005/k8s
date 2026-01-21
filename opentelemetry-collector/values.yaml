@@ -1,0 +1,53 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/open-telemetry/opentelemetry-helm-charts/refs/heads/main/charts/opentelemetry-collector/values.schema.json
+
+# default values.yaml with comments:
+# https://github.com/open-telemetry/opentelemetry-helm-charts/blob/main/charts/opentelemetry-collector/values.yaml
+
+mode: deployment
+
+image:
+  # Recommended under "Installing the Chart" at
+  # https://artifacthub.io/packages/helm/opentelemetry-helm/opentelemetry-collector
+  #
+  # This a OTEL Collector distro with support for Kubernetes-specific features
+  # https://github.com/open-telemetry/opentelemetry-collector-releases/tree/main/distributions/otelcol-k8s
+  repository: ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-k8s
+
+config:
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+        http:
+          endpoint: 0.0.0.0:4318
+  
+  processors:
+    batch: { }
+  
+  exporters:
+    otlp/tempo:
+      endpoint: tempo.monitoring.svc.cluster.local:4317
+      tls:
+        insecure: true
+    otlphttp/loki:
+      endpoint: http://loki.monitoring.svc.cluster.local:3100/otlp
+      tls:
+        insecure: true
+    prometheusremotewrite:
+      endpoint: http://kube-prom-stack-prometheus.monitoring.svc.cluster.local:9090/api/v1/write
+  
+  service:
+    pipelines:
+      traces:
+        receivers: [ otlp ]
+        processors: [ batch ]
+        exporters: [ otlp/tempo ]
+      metrics:
+        receivers: [ otlp ]
+        processors: [ batch ]
+        exporters: [ prometheusremotewrite ]
+      logs:
+        receivers: [ otlp ]
+        processors: [ batch ]
+        exporters: [ otlphttp/loki ]

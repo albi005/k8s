@@ -1,51 +1,113 @@
-# https://argo-cd.readthedocs.io/en/stable/operator-manual/declarative-setup/#manage-argo-cd-using-argo-cd
+# https://github.com/argoproj/argo-helm
+# https://artifacthub.io/packages/helm/argo-cd-oci/argo-cd
+
+namespace: argocd
 
 resources:
   - namespace.yaml
-  # TODO: Replace `stable` with a git commit hash and let Renovate update it
-  # automatically to the latest commit of the `stable` branch
-  - https://github.com/argoproj/argo-cd//manifests/cluster-install?ref=stable
 
-patches:
-  # https://argo-cd.readthedocs.io/en/stable/user-guide/kustomize/#kustomizing-helm-charts
-  - target:
-      kind: ConfigMap
-      name: argocd-cm
-    patch: |-
-      - op: add
-        path: /data/kustomize.buildOptions
-        value: "--enable-helm"
-
-  # GROUP 1: Heavy Components
-  # (Repo Server, API Server, App Controller need more RAM/CPU)
-  - target:
-      kind: (Deployment|StatefulSet)
-      name: (argocd-repo-server|argocd-server|argocd-application-controller)
-    patch: |-
-      - op: add
-        path: /spec/template/spec/containers/0/resources
-        value:
-          requests:
-            cpu: "50m"
-            memory: "128Mi"
+helmCharts:
+  - name: argo-cd
+    repo: oci://ghcr.io/argoproj/argo-helm
+    version: 9.3.4
+    releaseName: argocd
+    apiVersions:
+      - monitoring.coreos.com/v1
+    # https://github.com/argoproj/argo-helm/tree/main/charts/argo-cd#general-parameters
+    # or scroll down to "General parameters" on artifacthub
+    # or https://github.com/argoproj/argo-helm/blob/main/charts/argo-cd/values.yaml
+    valuesInline:
+      configs:
+        cm:
+          # https://argo-cd.readthedocs.io/en/stable/user-guide/kustomize/#kustomizing-helm-charts
+          kustomize.buildOptions: "--enable-helm"
+      
+      # resource requests/limits are from https://github.com/argoproj/argo-helm/blob/main/charts/argo-cd/values.yaml
+      controller:
+        resources:
           limits:
-            cpu: "1000m"
-            memory: "1Gi"
-
-  # GROUP 2: Light Components
-  # (Redis, Dex, Notifications, AppSet need very little)
-  - target:
-      kind: Deployment
-      name: (argocd-redis|argocd-dex-server|argocd-notifications-controller|argocd-applicationset-controller)
-    patch: |-
-      - op: add
-        path: /spec/template/spec/containers/0/resources
-        value:
+            cpu: 500m
+            memory: 512Mi
           requests:
-            cpu: "10m"
-            memory: "64Mi"
+            cpu: 250m
+            memory: 256Mi
+      dex:
+        initImage:
+          resources:
+            requests:
+              cpu: 5m
+              memory: 96Mi
+            limits:
+              cpu: 10m
+              memory: 144Mi
+        resources:
           limits:
-            cpu: "200m"
-            memory: "256Mi"
-
-namespace: argocd
+            cpu: 50m
+            memory: 64Mi
+          requests:
+            cpu: 10m
+            memory: 32Mi
+      redis:
+        resources:
+          limits:
+            cpu: 200m
+            memory: 128Mi
+          requests:
+            cpu: 100m
+            memory: 64Mi
+      redisSecretInit:
+        resources:
+          limits:
+            cpu: 200m
+            memory: 128Mi
+          requests:
+            cpu: 100m
+            memory: 64Mi
+      server:
+        extensions:
+          resources:
+            limits:
+              cpu: 50m
+              memory: 128Mi
+            requests:
+              cpu: 10m
+              memory: 64Mi
+        resources:
+          limits:
+            cpu: 100m
+            memory: 128Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+      repoServer:
+        copyutil:
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            requests:
+              cpu: 50m
+              memory: 64Mi
+        resources:
+          limits:
+            cpu: 50m
+            memory: 128Mi
+          requests:
+            cpu: 10m
+            memory: 64Mi
+      applicationSet:
+        resources:
+          limits:
+            cpu: 100m
+            memory: 128Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+      notifications:
+        resources:
+          limits:
+            cpu: 100m
+            memory: 128Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi

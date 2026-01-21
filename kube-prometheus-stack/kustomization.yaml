@@ -1,22 +1,83 @@
+# https://artifacthub.io/packages/helm/prometheus-community/kube-prometheus-stack
+
 namespace: monitoring
+
 helmCharts:
   - name: kube-prometheus-stack
     repo: https://prometheus-community.github.io/helm-charts
-    version: 80.13.3
+    version: 81.2.0
     releaseName: kube-prometheus-stack
     namespace: monitoring
     includeCRDs: true
+    
+    # https://github.com/prometheus-community/helm-charts/blob/main/charts/kube-prometheus-stack/values.yaml
     valuesInline:
+      alertmanager:
+        alertmanagerSpec:
+          resources:
+            requests:
+              memory: 400Mi
+              cpu: 100m
+            limits:
+              memory: 800Mi
+              cpu: 200m
+      prometheusOperator:
+        admissionWebhooks:
+          deployment:
+            resources:
+              limits:
+                cpu: 200m
+                memory: 200Mi
+              requests:
+                cpu: 100m
+                memory: 100Mi
+        resources:
+          limits:
+            cpu: 200m
+            memory: 200Mi
+          requests:
+            cpu: 100m
+            memory: 100Mi
+        prometheusConfigReloader:
+          resources:
+            requests:
+              cpu: 200m
+              memory: 50Mi
+            limits:
+              cpu: 200m
+              memory: 50Mi
+      prometheus:
+        prometheusSpec:
+          resources:
+            requests:
+              memory: 400Mi
+              cpu: 100m
+            limits:
+              memory: 800Mi
+              cpu: 200m
+          # Hallucinated by Gemini 3 Pro, may or may not be needed
+      #          serviceMonitorSelectorNilUsesHelmValues: false
+      #          selector: {}
+      thanosRuler:
+        thanosRulerSpec:
+          resources:
+            requests:
+              memory: 400Mi
+              cpu: 100m
+            limits:
+              memory: 800Mi
+              cpu: 200m
       grafana:
         # set a default password otherwise helm makes things non-reproducible by generating a random password
-        adminPassword: "admin"
+        adminPassword: admin
         
         resources:
           limits:
-            memory: 1Gi
+            cpu: 1
+            memory: 800Mi
           requests:
             cpu: 100m
-            memory: 512Mi
+            memory: 400Mi
 
         additionalDataSources:
           - name: Loki
@@ -31,7 +92,3 @@ helmCharts:
             uid: tempo
             access: proxy
             url: http://tempo.monitoring.svc.cluster.local:3200
-      prometheus:
-        prometheusSpec:
-          serviceMonitorSelectorNilUsesHelmValues: false
-          selector: {}

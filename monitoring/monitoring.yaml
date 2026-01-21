@@ -1,3 +1,4 @@
+# Just the namespace declaration. The services are defined as individual apps
 apiVersion: v1
 kind: Namespace
 metadata:
