@@ -53,8 +53,7 @@ helmCharts:
 
       prometheus:
         prometheusSpec:
-          enableFeatures:
-            - otlp-write-receiver
+          enableOTLPReceiver: true
           resources:
             requests:
               memory: 400Mi
