@@ -51,7 +51,7 @@ controlPlane:
               enabled: true
               retentionPolicy: Retain
               size: 8Gi
-              accessModes: ["ReadWriteOnce"]
+              accessModes: [ ReadWriteOnce ]
 
 
 policies:
@@ -67,12 +67,12 @@ policies:
       limits.memory: 60Gi
 
       requests.ephemeral-storage: 40Gi
-      limits.ephemeral-storage: 40Gi
-      requests.storage: "600Gi"
-      memory-ssd.storageclass.storage.k8s.io/requests.storage: "100Gi"
-      memory-ssd-rwx.storageclass.storage.k8s.io/requests.storage: "100Gi"
-      node-local-zfs.storageclass.storage.k8s.io/requests.storage: "0Gi"
-      memory-hdd.storageclass.storage.k8s.io/requests.storage: "500Gi"
+      limits.ephemeral-storage: 100Gi
+      requests.storage: 600Gi
+      memory-ssd.storageclass.storage.k8s.io/requests.storage: 100Gi
+      memory-ssd-rwx.storageclass.storage.k8s.io/requests.storage: 100Gi
+      node-local-zfs.storageclass.storage.k8s.io/requests.storage: 0Gi
+      memory-hdd.storageclass.storage.k8s.io/requests.storage: 500Gi
 
       services.nodeports: 17
       services.loadbalancers: 16
@@ -94,8 +94,8 @@ policies:
       ephemeral-storage: 40Mi
       memory: 128Mi
       cpu: 100m
-    min: {}
-    max: {}
+    min: { }
+    max: { }
 
 telemetry:
   enabled: false
