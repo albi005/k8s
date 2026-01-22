@@ -35,25 +35,10 @@ controlPlane:
     k8s:
       image:
         tag: v1.34.1
-  backingStore:
-    etcd:
-      deploy:
-        enabled: false
-        statefulSet:
-          resources:
-            limits:
-              cpu: "256m"
-          enabled: true
-          highAvailability:
-            replicas: 1
-          persistence:
-            volumeClaim:
-              enabled: true
-              retentionPolicy: Retain
-              size: 8Gi
-              accessModes: [ ReadWriteOnce ]
-              # storageClass: memory-ssd
-
+  statefulSet: 
+    persistence: 
+      volumeClaim: 
+        storageClass: memory-ssd
 
 policies:
   podSecurityStandard: baseline
