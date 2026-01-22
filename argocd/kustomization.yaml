@@ -31,7 +31,7 @@ helmCharts:
             memory: 700Mi
           requests:
             cpu: 250m
-            memory: 256Mi
+            memory: 287Mi
       dex:
         initImage:
           resources:
