@@ -13,9 +13,9 @@ cd k8s
 vcluster create --upgrade green -n vc-green -f vcluster.yaml
 
 # Install ArgoCD into the Kubernetes cluster
-kubectl apply --kustomize argocd/
+kubectl kustomize --enable-helm argocd/ | kubectl apply -f -
 
-# Install this repo as an ArgoCD Application
+# Install an ArgoCD ApplicationSet for this repository
 kubectl apply -f application-set/
 ```
 
