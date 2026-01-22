@@ -19,7 +19,7 @@ config:
           endpoint: 0.0.0.0:4318
   
   processors:
-    batch:
+    batch: { }
   
   # https://opentelemetry.io/docs/collector/components/exporter/
   exporters:
