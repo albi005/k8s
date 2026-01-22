@@ -89,8 +89,10 @@ telemetry:
 integrations:
   metricsServer:
     enabled: true
+    nodes: true
+    pods: true
     apiService:
       service:
         name: metrics-server
-        namespace: metrics-server
-        port: 443
+        namespace: kube-system
+        port: 9001
