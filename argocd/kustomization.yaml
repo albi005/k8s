@@ -23,6 +23,7 @@ helmCharts:
           kustomize.buildOptions: "--enable-helm"
       
       # resource requests/limits are from https://github.com/argoproj/argo-helm/blob/main/charts/argo-cd/values.yaml
+      # nvm they are useless
       controller:
         resources:
           limits:
@@ -38,28 +39,28 @@ helmCharts:
               cpu: 5m
               memory: 96Mi
             limits:
-              cpu: 10m
-              memory: 144Mi
+              cpu: 110m
+              memory: 200Mi
         resources:
           limits:
-            cpu: 50m
-            memory: 64Mi
+            cpu: 150m
+            memory: 200Mi
           requests:
             cpu: 10m
             memory: 32Mi
       redis:
         resources:
           limits:
-            cpu: 200m
-            memory: 128Mi
+            cpu: 300m
+            memory: 300Mi
           requests:
             cpu: 100m
             memory: 64Mi
       redisSecretInit:
         resources:
           limits:
-            cpu: 200m
-            memory: 128Mi
+            cpu: 400m
+            memory: 200Mi
           requests:
             cpu: 100m
             memory: 64Mi
@@ -67,15 +68,15 @@ helmCharts:
         extensions:
           resources:
             limits:
-              cpu: 50m
-              memory: 128Mi
+              cpu: 150m
+              memory: 200Mi
             requests:
               cpu: 10m
               memory: 64Mi
         resources:
           limits:
-            cpu: 100m
-            memory: 400Mi
+            cpu: 500m
+            memory: 600Mi
           requests:
             cpu: 50m
             memory: 64Mi
@@ -90,24 +91,24 @@ helmCharts:
               memory: 64Mi
         resources:
           limits:
-            cpu: 500m
-            memory: 500Mi
+            cpu: 700m
+            memory: 700Mi
           requests:
             cpu: 10m
             memory: 64Mi
       applicationSet:
         resources:
           limits:
-            cpu: 100m
-            memory: 128Mi
+            cpu: 400m
+            memory: 400Mi
           requests:
             cpu: 100m
-            memory: 300Mi
+            memory: 100Mi
       notifications:
         resources:
           limits:
-            cpu: 100m
-            memory: 128Mi
+            cpu: 300m
+            memory: 300Mi
           requests:
             cpu: 100m
             memory: 128Mi
