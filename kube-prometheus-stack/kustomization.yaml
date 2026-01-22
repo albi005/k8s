@@ -60,9 +60,6 @@ helmCharts:
             limits:
               memory: 800Mi
               cpu: 200m
-          # Allow Prometheus to discover all ServiceMonitors and PodMonitors
-          serviceMonitorSelectorNilUsesHelmValues: false
-          podMonitorSelectorNilUsesHelmValues: false
 
       thanosRuler:
         thanosRulerSpec:

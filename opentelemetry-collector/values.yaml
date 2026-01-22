@@ -56,5 +56,5 @@ ports:
     servicePort: 8889
     protocol: TCP
 
-podMonitor:
+serviceMonitor:
   enabled: true
