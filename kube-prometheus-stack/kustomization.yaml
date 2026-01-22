@@ -60,9 +60,9 @@ helmCharts:
             limits:
               memory: 800Mi
               cpu: 200m
-          # Hallucinated by Gemini 3 Pro, may or may not be needed
-      #          serviceMonitorSelectorNilUsesHelmValues: false
-      #          selector: {}
+          # Allow Prometheus to discover all ServiceMonitors and PodMonitors
+          serviceMonitorSelectorNilUsesHelmValues: false
+          podMonitorSelectorNilUsesHelmValues: false
 
       thanosRuler:
         thanosRulerSpec:
