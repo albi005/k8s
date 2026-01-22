@@ -38,7 +38,7 @@ controlPlane:
   backingStore:
     etcd:
       deploy:
-        enabled: true
+        enabled: false
         statefulSet:
           resources:
             limits:
@@ -52,6 +52,7 @@ controlPlane:
               retentionPolicy: Retain
               size: 8Gi
               accessModes: [ ReadWriteOnce ]
+              # storageClass: memory-ssd
 
 
 policies:
