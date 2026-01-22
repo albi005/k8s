@@ -12,6 +12,9 @@ helmCharts:
     
     # https://github.com/prometheus-community/helm-charts/blob/main/charts/kube-prometheus-stack/values.yaml
     valuesInline:
+      nodeExporter:
+        enabled: false
+
       alertmanager:
         alertmanagerSpec:
           resources:
@@ -21,6 +24,7 @@ helmCharts:
             limits:
               memory: 800Mi
               cpu: 200m
+
       prometheusOperator:
         admissionWebhooks:
           deployment:
@@ -46,6 +50,7 @@ helmCharts:
             limits:
               cpu: 200m
               memory: 50Mi
+
       prometheus:
         prometheusSpec:
           resources:
@@ -58,6 +63,7 @@ helmCharts:
           # Hallucinated by Gemini 3 Pro, may or may not be needed
       #          serviceMonitorSelectorNilUsesHelmValues: false
       #          selector: {}
+
       thanosRuler:
         thanosRulerSpec:
           resources:
@@ -67,10 +73,10 @@ helmCharts:
             limits:
               memory: 800Mi
               cpu: 200m
+
       grafana:
         # set a default password otherwise helm makes things non-reproducible by generating a random password
         adminPassword: admin
-        
         resources:
           limits:
             cpu: 1
@@ -78,7 +84,6 @@ helmCharts:
           requests:
             cpu: 100m
             memory: 400Mi
-
         additionalDataSources:
           - name: Loki
             type: loki
