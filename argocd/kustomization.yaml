@@ -51,8 +51,8 @@ helmCharts:
       redis:
         resources:
           limits:
-            cpu: 300m
-            memory: 300Mi
+            cpu: 500m
+            memory: 700Mi
           requests:
             cpu: 100m
             memory: 64Mi
@@ -69,7 +69,7 @@ helmCharts:
           resources:
             limits:
               cpu: 150m
-              memory: 200Mi
+              memory: 400Mi
             requests:
               cpu: 10m
               memory: 64Mi
@@ -99,8 +99,8 @@ helmCharts:
       applicationSet:
         resources:
           limits:
-            cpu: 400m
-            memory: 400Mi
+            cpu: 500m
+            memory: 600Mi
           requests:
             cpu: 100m
             memory: 100Mi
@@ -108,7 +108,7 @@ helmCharts:
         resources:
           limits:
             cpu: 300m
-            memory: 300Mi
+            memory: 400Mi
           requests:
             cpu: 100m
             memory: 128Mi
