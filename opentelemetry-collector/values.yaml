@@ -17,10 +17,10 @@ config:
           endpoint: 0.0.0.0:4317
         http:
           endpoint: 0.0.0.0:4318
-  
+
   processors:
     batch: { }
-  
+
   # https://opentelemetry.io/docs/collector/components/exporter/
   exporters:
     otlp/tempo:
@@ -33,7 +33,7 @@ config:
         insecure: true
     prometheus:
       endpoint: 0.0.0.0:8889
-  
+
   service:
     pipelines:
       traces:
@@ -48,3 +48,13 @@ config:
         receivers: [ otlp ]
         processors: [ batch ]
         exporters: [ otlphttp/loki ]
+
+ports:
+  prometheus:
+    enabled: true
+    containerPort: 8889
+    servicePort: 8889
+    protocol: TCP
+
+podMonitor:
+  enabled: true
