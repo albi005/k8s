@@ -32,6 +32,7 @@ controlPlane:
         limits:
           cpu: 256m
   distro:
+    
     k8s:
       image:
         tag: v1.34.1
@@ -91,8 +92,8 @@ integrations:
     enabled: true
     nodes: true
     pods: true
-    apiService:
-      service:
-        name: metrics-server
-        namespace: kube-system
-        port: 9001
+    # apiService:
+    #   service:
+    #     name: metrics-server
+    #     namespace: kube-system
+    #     port: 9001

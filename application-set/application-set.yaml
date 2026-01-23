@@ -26,6 +26,10 @@ spec:
             exclude: true
           - path: kube-prometheus-stack
             exclude: true
+          - path: cnpg
+            exclude: true
+          - path: cert-manager
+            exclude: true
   template:
     metadata:
       name: "{{.path.basename}}"
