@@ -20,6 +20,12 @@ spec:
             exclude: true
           - path: tempo
             exclude: true
+          - path: opentelemetry-collector
+            exclude: true
+          - path: loki
+            exclude: true
+          - path: kube-prometheus-stack
+            exclude: true
   template:
     metadata:
       name: "{{.path.basename}}"
