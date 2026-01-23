@@ -12,6 +12,10 @@ spec:
         revision: HEAD
         directories:
           - path: "*"
+          - path: application-set
+            exclude: true
+          - path: tempo
+            exclude: true
   template:
     metadata:
       name: "{{.path.basename}}"
