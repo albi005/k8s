@@ -1,16 +1,16 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/cert-manager/cert-manager/refs/heads/master/deploy/charts/cert-manager/values.schema.json
 
-# crds:
-#   enabled: true
+crds:
+  enabled: true
 
-# global:
-#   leaderElection:
-#     namespace: cert-manager
+global:
+  leaderElection:
+    namespace: cert-manager
 
-# resources:
-#   requests:
-#     cpu: 10m
-#     memory: 32Mi
-#   limits:
-#     cpu: 100m
-#     memory: 96Mi
+resources:
+  requests:
+    cpu: 100m
+    memory: 320Mi
+  limits:
+    cpu: 1000m
+    memory: 960Mi
