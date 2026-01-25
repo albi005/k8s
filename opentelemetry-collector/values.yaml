@@ -9,6 +9,14 @@ image:
   # https://github.com/open-telemetry/opentelemetry-collector-releases/tree/main/distributions/otelcol
   repository: ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector
 
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 50m
+    memory: 100Mi
+
 config:
   receivers:
     otlp:
