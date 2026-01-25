@@ -69,6 +69,14 @@ metadata:
   name: startsch-backups
   namespace: startsch
 spec:
+  instanceSidecarConfiguration:
+    resources:
+      limits:
+        cpu: '1'
+        memory: 512Mi
+      requests:
+        cpu: 100m
+        memory: 256Mi
   configuration:
     destinationPath: s3://startsch-backups/
     endpointURL: https://s3.eu-central-003.backblazeb2.com
