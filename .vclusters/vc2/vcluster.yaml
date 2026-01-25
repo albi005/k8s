@@ -46,7 +46,7 @@ policies:
   podSecurityStandard: baseline
   
   resourceQuota:
-    enabled: true
+    enabled: false
     quota:
       requests.cpu: 30
       limits.cpu: 60

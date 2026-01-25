@@ -14,3 +14,32 @@ resources:
   limits:
     cpu: 1000m
     memory: 960Mi
+
+cainjector:
+  resources: 
+    requests:
+      cpu: 100m
+      memory: 320Mi
+    limits:
+      cpu: 1000m
+      memory: 960Mi
+    
+webhook:
+  resources: 
+    requests:
+      cpu: 100m
+      memory: 320Mi
+    limits:
+      cpu: 1000m
+      memory: 960Mi
+
+startupapicheck:
+  resources: 
+    requests:
+      cpu: 100m
+      memory: 320Mi
+    limits:
+      cpu: 1000m
+      memory: 960Mi
+  
+
