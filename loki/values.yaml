@@ -40,9 +40,51 @@ singleBinary:
 
 chunksCache:
   writebackSizeLimit: 10MB
-
+  allocatedMemory: 600
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 1000m
+      memory: 700Mi
+resultsCache:
+  allocatedMemory: 300
+  writebackSizeLimit: 30MB
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 1000m
+      memory: 700Mi
+lokiCanary:
+  enabled: false
 minio:
   enabled: true
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 1000m
+      memory: 700Mi
+gateway:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 1000m
+      memory: 700Mi
+sidecar: # loki-sc-rules
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 1000m
+      memory: 700Mi
 
 backend:
   replicas: 0

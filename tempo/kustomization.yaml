@@ -12,6 +12,13 @@ helmCharts:
     valuesInline:
       tempo:
         repository: grafana/tempo
+        resources:
+          limits:
+            cpu: 1
+            memory: 1Gi
+          requests:
+            cpu: .1
+            memory: 200Mi
       storage:
         trace:
           backend: local

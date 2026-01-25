@@ -1,4 +1,5 @@
 # https://artifacthub.io/packages/helm/cloudnative-pg/cloudnative-pg
+# https://github.com/cloudnative-pg/charts
 
 namespace: cnpg-system
 resources:
@@ -10,3 +11,4 @@ helmCharts:
     releaseName: cnpg
     namespace: cnpg-system
     includeCRDs: true
+    valuesFile: values.yaml
