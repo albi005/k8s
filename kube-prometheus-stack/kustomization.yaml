@@ -79,7 +79,15 @@ helmCharts:
             limits:
               memory: 800Mi
               cpu: 200m
-
+      # https://github.com/prometheus-community/helm-charts/blob/5524c8e9fa365cd2c12e76fb572fee3e419e55c7/charts/kube-state-metrics/values.yaml#L479
+      kube-state-metrics:
+        resources:
+          limits:
+            cpu: 1
+            memory: 500Mi
+          requests:
+            cpu: 100m
+            memory: 100Mi
       grafana:
         # set a default password otherwise helm makes things non-reproducible by generating a random password
         adminPassword: admin
@@ -90,6 +98,15 @@ helmCharts:
           requests:
             cpu: 100m
             memory: 400Mi
+        # https://github.com/grafana/helm-charts/blob/f7410c6487b021ca64a302c97ed82cfa077d0089/charts/grafana/values.yaml#L973
+        sidecar:
+          resources:
+            limits:
+              cpu: 100m
+              memory: 100Mi
+            requests:
+              cpu: 10m
+              memory: 40Mi
         additionalDataSources:
           - name: Loki
             type: loki
