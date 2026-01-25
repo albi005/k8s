@@ -12,7 +12,6 @@ helmCharts:
     valuesInline:
       tempo:
         repository: grafana/tempo
-        tag: latest
       storage:
         trace:
           backend: local
