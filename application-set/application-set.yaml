@@ -12,24 +12,24 @@ spec:
         revision: HEAD
         directories:
           - path: "*"
-          - path: startsch
-            exclude: true
-          - path: argocd
-            exclude: true
-          - path: application-set
-            exclude: true
-          - path: tempo
-            exclude: true
-          - path: opentelemetry-collector
-            exclude: true
-          - path: loki
-            exclude: true
-          - path: kube-prometheus-stack
-            exclude: true
-          - path: cnpg
-            exclude: true
-          - path: cert-manager
-            exclude: true
+          # - path: startsch
+          #   exclude: true
+          # - path: argocd
+          #   exclude: true
+          # - path: application-set
+          #   exclude: true
+          # - path: tempo
+          #   exclude: true
+          # - path: opentelemetry-collector
+          #   exclude: true
+          # - path: loki
+          #   exclude: true
+          # - path: kube-prometheus-stack
+          #   exclude: true
+          # - path: cnpg
+          #   exclude: true
+          # - path: cert-manager
+          #   exclude: true
   template:
     metadata:
       name: "{{.path.basename}}"
