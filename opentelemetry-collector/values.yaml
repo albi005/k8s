@@ -12,11 +12,11 @@ image:
 resources:
   limits:
     cpu: 200m
-    memory: 1Gi
+    memory: 256Mi
     ephemeral-storage: 200Mi
   requests:
     cpu: 50m
-    memory: 100Mi
+    memory: 64Mi
     ephemeral-storage: 0
 
 config:

@@ -11,5 +11,5 @@ resources:
     ephemeral-storage: 200Mi
   requests:
     cpu: 100m
-    memory: 100Mi
+    memory: 50Mi
     ephemeral-storage: 0

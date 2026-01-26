@@ -30,15 +30,15 @@ singleBinary:
   resources:
     limits:
       cpu: 1
-      memory: 2Gi
+      memory: 512Mi
       ephemeral-storage: 300Mi
     requests:
       cpu: .1
-      memory: 512Mi
+      memory: 256Mi
       ephemeral-storage: 50Mi
   extraEnv:
     - name: GOMEMLIMIT
-      value: 850MiB
+      value: 400MiB
 
 chunksCache:
   writebackSizeLimit: 10MB
@@ -46,11 +46,11 @@ chunksCache:
   resources:
     requests:
       cpu: 100m
-      memory: 128Mi
+      memory: 64Mi
       ephemeral-storage: 0
     limits:
       cpu: 200m
-      memory: 700Mi
+      memory: 256Mi
       ephemeral-storage: 200Mi
 resultsCache:
   allocatedMemory: 300
@@ -58,11 +58,11 @@ resultsCache:
   resources:
     requests:
       cpu: 100m
-      memory: 128Mi
+      memory: 64Mi
       ephemeral-storage: 0
     limits:
       cpu: 200m
-      memory: 700Mi
+      memory: 256Mi
       ephemeral-storage: 200Mi
 test:
   enabled: false
@@ -71,11 +71,11 @@ lokiCanary:
   resources:
     requests:
       cpu: 100m
-      memory: 128Mi
+      memory: 64Mi
       ephemeral-storage: 0
     limits:
       cpu: 200m
-      memory: 700Mi
+      memory: 256Mi
       ephemeral-storage: 200Mi
 minio:
   enabled: true
@@ -86,37 +86,37 @@ minio:
       ephemeral-storage: 50Mi
     limits:
       cpu: 200m
-      memory: 700Mi
+      memory: 256Mi
       ephemeral-storage: 200Mi
 gateway:
   resources:
     requests:
       cpu: 100m
-      memory: 128Mi
+      memory: 64Mi
       ephemeral-storage: 0
     limits:
       cpu: 200m
-      memory: 700Mi
+      memory: 256Mi
       ephemeral-storage: 200Mi
 sidecar: # loki-sc-rules
   resources:
     requests:
       cpu: 100m
-      memory: 128Mi
+      memory: 64Mi
       ephemeral-storage: 0
     limits:
       cpu: 200m
-      memory: 700Mi
+      memory: 256Mi
       ephemeral-storage: 200Mi
 memcachedExporter:
   resources:
     requests:
       cpu: 100m
-      memory: 128Mi
+      memory: 64Mi
       ephemeral-storage: 0
     limits:
       cpu: 200m
-      memory: 700Mi
+      memory: 256Mi
       ephemeral-storage: 200Mi
 
 backend:

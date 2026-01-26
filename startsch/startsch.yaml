@@ -73,11 +73,11 @@ spec:
     resources:
       limits:
         cpu: '1'
-        memory: 512Mi
+        memory: 256Mi
         ephemeral-storage: 500Mi
       requests:
         cpu: 100m
-        memory: 256Mi
+        memory: 128Mi
         ephemeral-storage: 100Mi
   configuration:
     destinationPath: s3://startsch-backups/
@@ -126,12 +126,12 @@ spec:
       archive_timeout: '1200'
   resources:
     limits:
-      cpu: '1'
-      memory: 512Mi
+      cpu: 500m
+      memory: 256Mi
       ephemeral-storage: 500Mi
     requests:
       cpu: 100m
-      memory: 256Mi
+      memory: 128Mi
       ephemeral-storage: 100Mi
   storage:
     size: 1.5Gi
@@ -260,8 +260,8 @@ spec:
                 name: startsch-secrets
           resources:
             limits:
-              cpu: '1'
-              memory: 512Mi
+              cpu: 500m
+              memory: 400Mi
               ephemeral-storage: 200Mi
             requests:
               cpu: 100m

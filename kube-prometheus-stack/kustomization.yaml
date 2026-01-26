@@ -19,11 +19,11 @@ helmCharts:
         alertmanagerSpec:
           resources:
             requests:
-              memory: 400Mi
+              memory: 100Mi
               cpu: 100m
               ephemeral-storage: 0
             limits:
-              memory: 800Mi
+              memory: 300Mi
               cpu: 200m
               ephemeral-storage: 200Mi
 
@@ -33,36 +33,36 @@ helmCharts:
             resources:
               limits:
                 cpu: 200m
-                memory: 200Mi
+                memory: 128Mi
                 ephemeral-storage: 200Mi
               requests:
                 cpu: 100m
-                memory: 100Mi
+                memory: 50Mi
                 ephemeral-storage: 0
           patch:
             resources:
               limits:
                 cpu: 200m
-                memory: 200Mi
+                memory: 128Mi
                 ephemeral-storage: 200Mi
               requests:
                 cpu: 100m
-                memory: 100Mi
+                memory: 50Mi
                 ephemeral-storage: 0
         resources:
           limits:
             cpu: 200m
-            memory: 200Mi
+            memory: 128Mi
             ephemeral-storage: 200Mi
           requests:
             cpu: 100m
-            memory: 100Mi
+            memory: 50Mi
             ephemeral-storage: 0
         prometheusConfigReloader:
           resources:
             requests:
               cpu: 200m
-              memory: 50Mi
+              memory: 25Mi
               ephemeral-storage: 0
             limits:
               cpu: 200m
@@ -78,7 +78,7 @@ helmCharts:
               cpu: 100m
               ephemeral-storage: 200Mi
             limits:
-              memory: 800Mi
+              memory: 600Mi
               cpu: 200m
               ephemeral-storage: 500Mi
 
@@ -86,11 +86,11 @@ helmCharts:
         thanosRulerSpec:
           resources:
             requests:
-              memory: 400Mi
+              memory: 100Mi
               cpu: 100m
               ephemeral-storage: 0
             limits:
-              memory: 800Mi
+              memory: 300Mi
               cpu: 200m
               ephemeral-storage: 200Mi
       # https://github.com/prometheus-community/helm-charts/blob/5524c8e9fa365cd2c12e76fb572fee3e419e55c7/charts/kube-state-metrics/values.yaml#L479
@@ -98,11 +98,11 @@ helmCharts:
         resources:
           limits:
             cpu: 200m
-            memory: 500Mi
+            memory: 128Mi
             ephemeral-storage: 200Mi
           requests:
             cpu: 100m
-            memory: 100Mi
+            memory: 50Mi
             ephemeral-storage: 0
       grafana:
         # set a default password otherwise helm makes things non-reproducible by generating a random password
@@ -110,22 +110,22 @@ helmCharts:
         resources:
           limits:
             cpu: 300m
-            memory: 800Mi
+            memory: 512Mi
             ephemeral-storage: 200Mi
           requests:
             cpu: 100m
-            memory: 400Mi
+            memory: 300Mi
             ephemeral-storage: 50Mi
         # https://github.com/grafana/helm-charts/blob/f7410c6487b021ca64a302c97ed82cfa077d0089/charts/grafana/values.yaml#L973
         sidecar:
           resources:
             limits:
               cpu: 100m
-              memory: 100Mi
+              memory: 80Mi
               ephemeral-storage: 200Mi
             requests:
               cpu: 10m
-              memory: 40Mi
+              memory: 20Mi
               ephemeral-storage: 0
         additionalDataSources:
           - name: Loki

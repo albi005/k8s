@@ -3,9 +3,9 @@
 resources:
   requests:
     cpu: 100m
-    memory: 128Mi
+    memory: 64Mi
     ephemeral-storage: 0
   limits:
-    cpu: 200m
+    cpu: 500m
     memory: 256Mi
-    ephemeral-storage: 200Mi
+    ephemeral-storage: 500Mi
