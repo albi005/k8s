@@ -11,35 +11,42 @@ resources:
   requests:
     cpu: 100m
     memory: 320Mi
+    ephemeral-storage: 0
   limits:
     cpu: 1000m
     memory: 960Mi
+    ephemeral-storage: 200Mi
 
 cainjector:
   resources: 
     requests:
       cpu: 100m
       memory: 320Mi
+      ephemeral-storage: 0
     limits:
       cpu: 1000m
       memory: 960Mi
+      ephemeral-storage: 200Mi
     
 webhook:
   resources: 
     requests:
       cpu: 100m
       memory: 320Mi
+      ephemeral-storage: 0
     limits:
       cpu: 1000m
       memory: 960Mi
+      ephemeral-storage: 200Mi
 
 startupapicheck:
   resources: 
     requests:
       cpu: 100m
       memory: 320Mi
+      ephemeral-storage: 0
     limits:
       cpu: 1000m
       memory: 960Mi
+      ephemeral-storage: 200Mi
   
-

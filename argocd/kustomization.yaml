@@ -53,11 +53,11 @@ helmCharts:
           limits:
             cpu: 150m
             memory: 200Mi
-            ephemeral-storage: 200M
+            ephemeral-storage: 400Mi
           requests:
             cpu: 10m
             memory: 32Mi
-            ephemeral-storage: 0
+            ephemeral-storage: 100Mi
       redis:
         resources:
           limits:
@@ -88,7 +88,7 @@ helmCharts:
             requests:
               cpu: 10m
               memory: 64Mi
-              ephemeral-storage: 0
+              ephemeral-storage: 50Mi
         resources:
           limits:
             cpu: 500m
@@ -97,7 +97,7 @@ helmCharts:
           requests:
             cpu: 50m
             memory: 64Mi
-            ephemeral-storage: 0
+            ephemeral-storage: 50Mi
       repoServer:
         copyutil:
           resources:
@@ -108,16 +108,16 @@ helmCharts:
             requests:
               cpu: 50m
               memory: 64Mi
-              ephemeral-storage: 0
+              ephemeral-storage: 50Mi
         resources:
           limits:
             cpu: 700m
             memory: 700Mi
-            ephemeral-storage: 200M
+            ephemeral-storage: 400Mi
           requests:
             cpu: 10m
             memory: 64Mi
-            ephemeral-storage: 0
+            ephemeral-storage: 100Mi
       applicationSet:
         resources:
           limits:

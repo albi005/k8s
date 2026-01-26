@@ -31,9 +31,11 @@ singleBinary:
     limits:
       cpu: 2
       memory: 2Gi
+      ephemeral-storage: 300Mi
     requests:
       cpu: .1
       memory: 512Mi
+      ephemeral-storage: 50Mi
   extraEnv:
     - name: GOMEMLIMIT
       value: 850MiB
@@ -45,9 +47,11 @@ chunksCache:
     requests:
       cpu: 100m
       memory: 128Mi
+      ephemeral-storage: 0
     limits:
       cpu: 1000m
       memory: 700Mi
+      ephemeral-storage: 200Mi
 resultsCache:
   allocatedMemory: 300
   writebackSizeLimit: 30MB
@@ -55,9 +59,11 @@ resultsCache:
     requests:
       cpu: 100m
       memory: 128Mi
+      ephemeral-storage: 0
     limits:
       cpu: 1000m
       memory: 700Mi
+      ephemeral-storage: 200Mi
 test:
   enabled: false
 lokiCanary:
@@ -66,42 +72,52 @@ lokiCanary:
     requests:
       cpu: 100m
       memory: 128Mi
+      ephemeral-storage: 0
     limits:
       cpu: 1000m
       memory: 700Mi
+      ephemeral-storage: 200Mi
 minio:
   enabled: true
   resources:
     requests:
       cpu: 100m
       memory: 128Mi
+      ephemeral-storage: 50Mi
     limits:
       cpu: 1000m
       memory: 700Mi
+      ephemeral-storage: 200Mi
 gateway:
   resources:
     requests:
       cpu: 100m
       memory: 128Mi
+      ephemeral-storage: 0
     limits:
       cpu: 1000m
       memory: 700Mi
+      ephemeral-storage: 200Mi
 sidecar: # loki-sc-rules
   resources:
     requests:
       cpu: 100m
       memory: 128Mi
+      ephemeral-storage: 0
     limits:
       cpu: 1000m
       memory: 700Mi
+      ephemeral-storage: 200Mi
 memcachedExporter:
   resources:
     requests:
       cpu: 100m
       memory: 128Mi
+      ephemeral-storage: 0
     limits:
       cpu: 1000m
       memory: 700Mi
+      ephemeral-storage: 200Mi
 
 backend:
   replicas: 0

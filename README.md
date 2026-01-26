@@ -38,3 +38,5 @@ kubectl apply -f application-set/
       ```
       at the top of the `values.yaml`. Find the `values.schema.json` file in the chart's GitHub repository,
       then press the *Raw* button to get a link.
+- Set `resources.{limits,requests}.ephemeral-storage`, as the default (1GiB) uses more than allowed by the quota
+  (especially for the limit)

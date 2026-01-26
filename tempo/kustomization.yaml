@@ -16,9 +16,11 @@ helmCharts:
           limits:
             cpu: 1
             memory: 1Gi
+            ephemeral-storage: 300Mi
           requests:
             cpu: .1
             memory: 200Mi
+            ephemeral-storage: 50Mi
       storage:
         trace:
           backend: local

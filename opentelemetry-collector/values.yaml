@@ -13,9 +13,11 @@ resources:
   limits:
     cpu: 1000m
     memory: 1Gi
+    ephemeral-storage: 200Mi
   requests:
     cpu: 50m
     memory: 100Mi
+    ephemeral-storage: 0
 
 config:
   receivers:
