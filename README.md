@@ -2,22 +2,45 @@
 
 ## Bootstrapping
 
+Install
+[kubectl](https://kubernetes.io/docs/tasks/tools/#kubectl),
+[k3d](https://k3d.io), and
+the [vCluster CLI](https://www.vcluster.com/install)
+(`nix-shell -p kubectl k3d vcluster` if you have Nix),
+then:
+
 ```bash
 # Create a cluster
-k3d cluster create mycluster --image rancher/k3s:v1.29.6-k3s1
+k3d cluster create mycluster --image rancher/k3s:v1.35.0-k3s1
 
 git clone https://github.com/kir-dev/k8s
 cd k8s
 
-# Create a vcluster inside it
-vcluster create --upgrade green -n vc-green -f vcluster.yaml
+# Create nested vClusters
+# Outer vCluster, should be identical to vc-kirdev
+vcluster create vc1 -n vc1 -f .vclusters/vc1/vcluster.yaml
+# Inner vCluster with workarounds for nested vCluster stuff
+vcluster create vc2 -n vc2 -f .vclusters/vc2/vcluster.yaml
 
-# Install ArgoCD into the Kubernetes cluster
+# Install ArgoCD
 kubectl kustomize --enable-helm argocd/ | kubectl apply -f -
 
 # Install an ArgoCD ApplicationSet for this repository
 kubectl apply -f application-set/
 ```
+
+## Adding a new app
+
+Create a new directory containing
+- `.yaml` files defining Kubernetes resources, or
+- a `kustomization.yaml`.
+  - You can use
+    [`helmCharts:`](https://kubectl.docs.kubernetes.io/references/kustomize/builtins/#_helmchartinflationgenerator_)
+    to install Helm charts. Set values either using `valuesInline:` or by creating a `values.yaml` and
+    referencing it using `valuesFile:`.
+
+ArgoCD checks each directory (except the ones starting with a `.`). If it sees `kustomization.yaml`, it `kubectl apply --kustomize`s it, otherwise it applies
+`.yaml` files using `kubectl apply`.
 
 ## Documentation
 
