@@ -19,7 +19,8 @@ cd k8s
 # Create nested vClusters
 # Outer vCluster, should be identical to vc-kirdev
 vcluster create vc1 -n vc1 -f .vclusters/vc1/vcluster.yaml
-# Inner vCluster with workarounds for nested vCluster stuff
+# Inner vCluster with workarounds for nested vCluster stuff,
+# uncomment the memory-ssd section in vc2/vcluster.yaml when deploying to the prod cluster
 vcluster create vc2 -n vc2 -f .vclusters/vc2/vcluster.yaml
 
 # Install ArgoCD
