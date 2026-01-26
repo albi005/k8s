@@ -37,14 +37,14 @@ controlPlane:
     k8s:
       image:
         tag: v1.35.0
-  # statefulSet: 
-  #   persistence: 
-  #     volumeClaim: 
-  #       storageClass: memory-ssd
+  statefulSet:
+    persistence:
+      volumeClaim:
+        storageClass: memory-ssd
 
 policies:
   podSecurityStandard: baseline
-  
+
   resourceQuota:
     enabled: false
     quota:

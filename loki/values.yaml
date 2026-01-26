@@ -29,7 +29,7 @@ singleBinary:
   replicas: 1
   resources:
     limits:
-      cpu: 2
+      cpu: 1
       memory: 2Gi
       ephemeral-storage: 300Mi
     requests:
@@ -49,7 +49,7 @@ chunksCache:
       memory: 128Mi
       ephemeral-storage: 0
     limits:
-      cpu: 1000m
+      cpu: 200m
       memory: 700Mi
       ephemeral-storage: 200Mi
 resultsCache:
@@ -61,7 +61,7 @@ resultsCache:
       memory: 128Mi
       ephemeral-storage: 0
     limits:
-      cpu: 1000m
+      cpu: 200m
       memory: 700Mi
       ephemeral-storage: 200Mi
 test:
@@ -74,7 +74,7 @@ lokiCanary:
       memory: 128Mi
       ephemeral-storage: 0
     limits:
-      cpu: 1000m
+      cpu: 200m
       memory: 700Mi
       ephemeral-storage: 200Mi
 minio:
@@ -85,7 +85,7 @@ minio:
       memory: 128Mi
       ephemeral-storage: 50Mi
     limits:
-      cpu: 1000m
+      cpu: 200m
       memory: 700Mi
       ephemeral-storage: 200Mi
 gateway:
@@ -95,7 +95,7 @@ gateway:
       memory: 128Mi
       ephemeral-storage: 0
     limits:
-      cpu: 1000m
+      cpu: 200m
       memory: 700Mi
       ephemeral-storage: 200Mi
 sidecar: # loki-sc-rules
@@ -105,7 +105,7 @@ sidecar: # loki-sc-rules
       memory: 128Mi
       ephemeral-storage: 0
     limits:
-      cpu: 1000m
+      cpu: 200m
       memory: 700Mi
       ephemeral-storage: 200Mi
 memcachedExporter:
@@ -115,7 +115,7 @@ memcachedExporter:
       memory: 128Mi
       ephemeral-storage: 0
     limits:
-      cpu: 1000m
+      cpu: 200m
       memory: 700Mi
       ephemeral-storage: 200Mi
 

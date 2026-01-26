@@ -97,7 +97,7 @@ helmCharts:
       kube-state-metrics:
         resources:
           limits:
-            cpu: 1
+            cpu: 200m
             memory: 500Mi
             ephemeral-storage: 200Mi
           requests:
@@ -109,7 +109,7 @@ helmCharts:
         adminPassword: admin
         resources:
           limits:
-            cpu: 1
+            cpu: 300m
             memory: 800Mi
             ephemeral-storage: 200Mi
           requests:
