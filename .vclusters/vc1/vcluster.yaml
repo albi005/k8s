@@ -54,8 +54,8 @@ policies:
       requests.memory: 60Gi
       limits.memory: 60Gi
 
-      requests.ephemeral-storage: 400Gi
-      limits.ephemeral-storage: 1000Gi
+      requests.ephemeral-storage: 40Gi
+      limits.ephemeral-storage: 100Gi
       requests.storage: 600Gi
       memory-ssd.storageclass.storage.k8s.io/requests.storage: 100Gi
       memory-ssd-rwx.storageclass.storage.k8s.io/requests.storage: 100Gi

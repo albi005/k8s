@@ -59,7 +59,7 @@ resultsCache:
       cpu: 1000m
       memory: 700Mi
 lokiCanary:
-  enabled: false
+  enabled: true # needed by `helm test` which runs automatically when deploying
 minio:
   enabled: true
   resources:
