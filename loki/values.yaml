@@ -60,6 +60,13 @@ resultsCache:
       memory: 700Mi
 lokiCanary:
   enabled: true # needed by `helm test` which runs automatically when deploying
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 1000m
+      memory: 700Mi
 minio:
   enabled: true
   resources:
