@@ -121,11 +121,11 @@ helmCharts:
           resources:
             limits:
               cpu: 100m
-              memory: 80Mi
+              memory: 200Mi
               ephemeral-storage: 200Mi
             requests:
               cpu: 10m
-              memory: 20Mi
+              memory: 50Mi
               ephemeral-storage: 0
         additionalDataSources:
           - name: Loki
