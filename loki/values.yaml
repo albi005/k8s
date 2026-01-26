@@ -58,8 +58,10 @@ resultsCache:
     limits:
       cpu: 1000m
       memory: 700Mi
+test:
+  enabled: false
 lokiCanary:
-  enabled: true # needed by `helm test` which runs automatically when deploying
+  enabled: false # needed by `helm test` which runs automatically when deploying
   resources:
     requests:
       cpu: 100m
