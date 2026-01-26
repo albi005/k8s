@@ -136,7 +136,7 @@ spec:
   storage:
     size: 1.5Gi
     # TODO: Reenable StartSCH DB storage class
-#    storageClass: node-local-zfs
+    storageClass: node-local-zfs
   plugins:
     - name: barman-cloud.cloudnative-pg.io
       enabled: true # needed otherwise ArgoCD complains
