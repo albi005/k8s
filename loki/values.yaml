@@ -89,6 +89,7 @@ minio:
       memory: 256Mi
       ephemeral-storage: 200Mi
 gateway:
+  affinity: {} # allow scheduling 2 gateways on the same node, needed when updating
   resources:
     requests:
       cpu: 100m
