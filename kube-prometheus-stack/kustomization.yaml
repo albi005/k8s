@@ -32,22 +32,22 @@ helmCharts:
           deployment:
             resources:
               limits:
-                cpu: 200m
-                memory: 128Mi
-                ephemeral-storage: 200Mi
+                cpu: 500m
+                memory: 250Mi
+                ephemeral-storage: 400Mi
               requests:
-                cpu: 100m
-                memory: 50Mi
+                cpu: 500m
+                memory: 250Mi
                 ephemeral-storage: 0
           patch:
             resources:
               limits:
-                cpu: 200m
-                memory: 128Mi
-                ephemeral-storage: 200Mi
+                cpu: 500m
+                memory: 400Mi
+                ephemeral-storage: 400Mi
               requests:
-                cpu: 100m
-                memory: 50Mi
+                cpu: 500m
+                memory: 400Mi
                 ephemeral-storage: 0
         resources:
           limits:
