@@ -66,3 +66,4 @@ ArgoCD checks each directory (except the ones starting with a `.`). If it sees `
   (especially for the limit)
 - Always specify the Postgres image version for CNPG `Cluster`s, otherwise backups can't be restored
   due to the version mismatch
+- Don't forget `database`/`owner` fields when restoring a CNPG DB from a backup
