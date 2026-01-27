@@ -149,32 +149,32 @@ spec:
 #      owner: startsch
 
   # Restore from a backup
-  bootstrap:
-    recovery:
-      source: backblaze-backup
-  externalClusters:
-    - name: backblaze-backup
-      plugin:
-        name: barman-cloud.cloudnative-pg.io
-        parameters:
-          barmanObjectName: startsch-backups
-          serverName: startsch-db
+#  bootstrap:
+#    recovery:
+#      source: backblaze-backup
+#  externalClusters:
+#    - name: backblaze-backup
+#      plugin:
+#        name: barman-cloud.cloudnative-pg.io
+#        parameters:
+#          barmanObjectName: startsch-backups
+#          serverName: startsch-db
 
 ---
 
-#kind: ScheduledBackup
-#apiVersion: postgresql.cnpg.io/v1
-#metadata:
-#  name: startsch-backup
-#  namespace: startsch
-#spec:
-#  cluster:
-#    name: startsch-db
-#  schedule: "0 24 3 * * *"  # At 3:24 every day
-#  backupOwnerReference: self
-#  method: plugin
-#  pluginConfiguration:
-#    name: barman-cloud.cloudnative-pg.io
+kind: ScheduledBackup
+apiVersion: postgresql.cnpg.io/v1
+metadata:
+  name: startsch-backup
+  namespace: startsch
+spec:
+  cluster:
+    name: startsch-db
+  schedule: "0 24 3 * * *"  # At 3:24 every day
+  backupOwnerReference: self
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
 
 ---
 
@@ -187,7 +187,7 @@ metadata:
     app.kubernetes.io/name: startsch
     app.kubernetes.io/component: server
 spec:
-  replicas: 0
+  replicas: 1
   selector:
     matchLabels:
       app.kubernetes.io/name: startsch
