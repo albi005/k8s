@@ -38,6 +38,15 @@ controlPlane:
       image:
         tag: v1.35.0
   statefulSet:
+    resources:
+      limits:
+        cpu: 600m
+        memory: 2Gi
+        ephemeral-storage: 2Gi
+      requests:
+        cpu: 300m
+        memory: 1536Mi
+        ephemeral-storage: 200Mi
     persistence:
       volumeClaim:
         storageClass: memory-ssd
