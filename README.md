@@ -64,3 +64,5 @@ ArgoCD checks each directory (except the ones starting with a `.`). If it sees `
       then press the *Raw* button to get a link.
 - Set `resources.{limits,requests}.ephemeral-storage`, as the default (1GiB) uses more than allowed by the quota
   (especially for the limit)
+- Always specify the Postgres image version for CNPG `Cluster`s, otherwise backups can't be restored
+  due to the version mismatch
