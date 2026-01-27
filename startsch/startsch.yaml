@@ -95,44 +95,44 @@ spec:
 
 ---
 
-#kind: Cluster
-#apiVersion: postgresql.cnpg.io/v1
-#metadata:
-#  namespace: startsch
-#  name: startsch-db
-#  labels:
-#    app.kubernetes.io/name: postgres
-#    app.kubernetes.io/instance: postgres-startsch
-#    app.kubernetes.io/component: database
-#    app.kubernetes.io/part-of: startsch
-#  annotations: { }
-#spec:
-#  primaryUpdateStrategy: unsupervised
-#  primaryUpdateMethod: switchover
-#  instances: 2
-#  imageName: ghcr.io/cloudnative-pg/postgresql:17.5
-#  imagePullPolicy: Always
-#  monitoring:
-#    enablePodMonitor: true
-#  postgresql:
-#    parameters:
-#      wal_level: replica
-#      shared_buffers: 128MB
-#      # only force wal archiving every 20 minutes if the current segment is not full
-#      # (only 2500 requests/day are free in backblaze, the original value of 5 minutes ran out of requests just before the reset)
-#      archive_timeout: '1200'
-#  resources:
-#    limits:
-#      cpu: 500m
-#      memory: 512Mi
-#      ephemeral-storage: 500Mi
-#    requests:
-#      cpu: 100m
-#      memory: 128Mi
-#      ephemeral-storage: 100Mi
-#  storage:
-#    size: 1.5Gi
-#    storageClass: node-local-zfs
+kind: Cluster
+apiVersion: postgresql.cnpg.io/v1
+metadata:
+  namespace: startsch
+  name: startsch-db
+  labels:
+    app.kubernetes.io/name: postgres
+    app.kubernetes.io/instance: postgres-startsch
+    app.kubernetes.io/component: database
+    app.kubernetes.io/part-of: startsch
+  annotations: { }
+spec:
+  primaryUpdateStrategy: unsupervised
+  primaryUpdateMethod: switchover
+  instances: 2
+  imageName: ghcr.io/cloudnative-pg/postgresql:17.5
+  imagePullPolicy: Always
+  monitoring:
+    enablePodMonitor: true
+  postgresql:
+    parameters:
+      wal_level: replica
+      shared_buffers: 128MB
+      # only force wal archiving every 20 minutes if the current segment is not full
+      # (only 2500 requests/day are free in backblaze, the original value of 5 minutes ran out of requests just before the reset)
+      archive_timeout: '1200'
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+      ephemeral-storage: 500Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+      ephemeral-storage: 100Mi
+  storage:
+    size: 1.5Gi
+    storageClass: node-local-zfs
 
   # Enable automatic backups
 #  plugins:
@@ -149,16 +149,16 @@ spec:
 #      owner: startsch
 
   # Restore from a backup
-#  bootstrap:
-#    recovery:
-#      source: backblaze-backup
-#  externalClusters:
-#    - name: backblaze-backup
-#      plugin:
-#        name: barman-cloud.cloudnative-pg.io
-#        parameters:
-#          barmanObjectName: startsch-backups
-#          serverName: startsch-db
+  bootstrap:
+    recovery:
+      source: backblaze-backup
+  externalClusters:
+    - name: backblaze-backup
+      plugin:
+        name: barman-cloud.cloudnative-pg.io
+        parameters:
+          barmanObjectName: startsch-backups
+          serverName: startsch-db
 
 ---
 
