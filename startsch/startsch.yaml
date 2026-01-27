@@ -247,3 +247,31 @@ spec:
               memory: 256Mi
               ephemeral-storage: 0
       restartPolicy: Always
+
+---
+
+kind: Ingress
+apiVersion: networking.k8s.io/v1
+metadata:
+  namespace: startsch
+  name: startsch
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+    acme.cert-manager.io/http01-ingress-class: traefik
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - start.sch.bme.hu
+      secretName: startsch-tls-cert
+  rules:
+    - host: start.sch.bme.hu
+      http:
+        paths:
+          - path: "/"
+            pathType: Prefix
+            backend:
+              service:
+                name: startsch
+                port:
+                  name: http
