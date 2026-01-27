@@ -113,10 +113,6 @@ spec:
   imagePullPolicy: Always
   monitoring:
     enablePodMonitor: true
-  bootstrap:
-    initdb:
-      database: startsch
-      owner: startsch
   postgresql:
     parameters:
       wal_level: replica
@@ -136,49 +132,32 @@ spec:
   storage:
     size: 1.5Gi
     storageClass: node-local-zfs
-  plugins:
-    - name: barman-cloud.cloudnative-pg.io
-      enabled: true # needed otherwise ArgoCD complains
-      isWALArchiver: true
-      parameters:
-        barmanObjectName: startsch-backups
 
----
-
-# Restoring a Postgres cluster from a backup:
-#kind: Cluster
-#apiVersion: postgresql.cnpg.io/v1
-#metadata:
-#  namespace: startsch
-#  name: startsch-db-restore
-#spec:
-#  primaryUpdateStrategy: unsupervised
-#  primaryUpdateMethod: switchover
-#  instances: 1
+  # Enable automatic backups
+#  plugins:
+#    - name: barman-cloud.cloudnative-pg.io
+#      enabled: true # needed otherwise ArgoCD complains
+#      isWALArchiver: true
+#      parameters:
+#        barmanObjectName: startsch-backups
+        
+  # Create a new database
 #  bootstrap:
-#    recovery:
-#      source: source
-#  externalClusters:
-#    - name: source
-#      plugin:
-#        name: barman-cloud.cloudnative-pg.io
-#        parameters:
-#          barmanObjectName: startsch-backups
-#          serverName: startsch-db
-#  postgresql:
-#    parameters:
-#      wal_level: replica
-#      shared_buffers: 128MB
-#  resources:
-#    limits:
-#      cpu: '1'
-#      memory: 512Mi
-#    requests:
-#      cpu: 100m
-#      memory: 256Mi
-#  storage:
-#    size: 1.5Gi
-#    storageClass: node-local-zfs
+#    initdb:
+#      database: startsch
+#      owner: startsch
+  
+  # Restore from a backup
+  bootstrap:
+    recovery:
+      source: backblaze-backup
+  externalClusters:
+    - name: backblaze-backup
+      plugin:
+        name: barman-cloud.cloudnative-pg.io
+        parameters:
+          barmanObjectName: startsch-backups
+          serverName: startsch-db
 
 ---
 
