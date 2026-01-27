@@ -5,6 +5,8 @@ namespace: cert-manager
 
 resources:
   - namespace.yaml
+  - letsencrypt-account-key.secret.yaml
+  - cluster-issuer.yaml
 
 helmCharts:
   - name: cert-manager

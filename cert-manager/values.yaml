@@ -5,7 +5,7 @@ crds:
 
 global:
   leaderElection:
-    namespace: cert-manager
+    namespace: cert-manager # may or may not be needed
 
 resources:
   requests:
