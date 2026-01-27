@@ -12,8 +12,8 @@ spec:
         revision: HEAD
         directories:
           - path: "*"
-#          - path: startsch
-#            exclude: true
+          - path: startsch
+            exclude: true
           # - path: argocd
           #   exclude: true
           # - path: application-set
