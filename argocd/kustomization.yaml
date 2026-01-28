@@ -32,7 +32,7 @@ helmCharts:
         resources:
           limits:
             cpu: 500m
-            memory: 700Mi
+            memory: 900Mi
             ephemeral-storage: 200M
           requests:
             cpu: 250m
