@@ -137,12 +137,12 @@ spec:
     storageClass: node-local-zfs
 
   # Enable automatic backups
-#  plugins:
-#    - name: barman-cloud.cloudnative-pg.io
-#      enabled: true # needed otherwise ArgoCD complains
-#      isWALArchiver: true
-#      parameters:
-#        barmanObjectName: startsch-backups
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      enabled: true # needed otherwise ArgoCD complains
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: startsch-backups
 
   # Create a new database
 #  bootstrap:
@@ -168,19 +168,19 @@ spec:
 
 ---
 
-#kind: ScheduledBackup
-#apiVersion: postgresql.cnpg.io/v1
-#metadata:
-#  name: startsch-backup
-#  namespace: startsch
-#spec:
-#  cluster:
-#    name: startsch-db
-#  schedule: "0 24 3 * * *"  # At 3:24 every day
-#  backupOwnerReference: self
-#  method: plugin
-#  pluginConfiguration:
-#    name: barman-cloud.cloudnative-pg.io
+kind: ScheduledBackup
+apiVersion: postgresql.cnpg.io/v1
+metadata:
+  name: startsch-backup
+  namespace: startsch
+spec:
+  cluster:
+    name: startsch-db
+  schedule: "0 24 3 * * *"  # At 3:24 every day
+  backupOwnerReference: self
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
 
 ---
 
