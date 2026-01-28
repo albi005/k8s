@@ -33,7 +33,8 @@ spec:
   template:
     metadata:
       name: "{{.path.basename}}"
-      finalizers: {{ if ne .path.basename "startsch" }}[ "resources-finalizer.argocd.argoproj.io" ]{{ else }}[]{{ end }}
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
     spec:
       project: default
       source:
