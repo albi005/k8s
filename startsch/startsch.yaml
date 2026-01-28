@@ -158,6 +158,8 @@ spec:
     - name: backblaze-backup
       plugin:
         name: barman-cloud.cloudnative-pg.io
+        enabled: true # needed otherwise ArgoCD complains about being OutOfSync
+        isWALArchiver: false # needed otherwise ArgoCD complains about being OutOfSync
         parameters:
           barmanObjectName: startsch-backups
           serverName: startsch-db
