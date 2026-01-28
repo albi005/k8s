@@ -78,7 +78,7 @@ helmCharts:
               cpu: 100m
               ephemeral-storage: 200Mi
             limits:
-              memory: 600Mi
+              memory: 800Mi
               cpu: 200m
               ephemeral-storage: 500Mi
 
