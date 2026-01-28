@@ -52,7 +52,7 @@ policies:
       limits.cpu: 60
 
       requests.memory: 60Gi
-      limits.memory: 60Gi
+      limits.memory: 70Gi
 
       requests.ephemeral-storage: 40Gi
       limits.ephemeral-storage: 100Gi
