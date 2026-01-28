@@ -47,6 +47,8 @@ controlPlane:
         cpu: 300m
         memory: 1536Mi
         ephemeral-storage: 200Mi
+
+    # Remove when running locally
     persistence:
       volumeClaim:
         storageClass: memory-ssd
