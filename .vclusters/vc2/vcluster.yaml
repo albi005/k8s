@@ -49,9 +49,9 @@ controlPlane:
         ephemeral-storage: 200Mi
 
     # Remove when running locally
-    persistence:
-      volumeClaim:
-        storageClass: memory-ssd
+    # persistence:
+    #   volumeClaim:
+    #     storageClass: memory-ssd
 
 policies:
   podSecurityStandard: baseline
