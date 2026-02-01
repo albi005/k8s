@@ -136,13 +136,13 @@ spec:
     size: 1.5Gi
     storageClass: node-local-zfs
 
-  # Enable automatic backups
-#  plugins:
-#    - name: barman-cloud.cloudnative-pg.io
-#      enabled: true # needed otherwise ArgoCD complains
-#      isWALArchiver: true
-#      parameters:
-#        barmanObjectName: startsch-backups
+  # Enable automatic backups (disable while restoring)
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      enabled: true # needed otherwise ArgoCD complains
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: startsch-backups
 
   # Create a new database
 #  bootstrap:
@@ -150,7 +150,7 @@ spec:
 #      database: startsch
 #      owner: startsch
 
-  # Restore from a backup
+  # Restore from a backup (leave after restoring finished)
   bootstrap:
     recovery:
       source: backblaze-backup
