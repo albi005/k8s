@@ -143,37 +143,37 @@ spec:
       ephemeral-storage: 100Mi
   storage:
     size: 1.5Gi
-    storageClass: node-local-zfs
 
   # Enable automatic backups (disable while restoring)
-  plugins:
-    - name: barman-cloud.cloudnative-pg.io
-      enabled: true # needed otherwise ArgoCD complains
-      isWALArchiver: true
-      parameters:
-        barmanObjectName: startsch-backups
+  # Disabled for local testing (no Backblaze credentials)
+#  plugins:
+#    - name: barman-cloud.cloudnative-pg.io
+#      enabled: true # needed otherwise ArgoCD complains
+#      isWALArchiver: true
+#      parameters:
+#        barmanObjectName: startsch-backups
 
   # Create a new database
-#  bootstrap:
-#    initdb:
-#      database: startsch
-#      owner: startsch
-
-  # Restore from a backup (leave after restoring finished)
   bootstrap:
-    recovery:
-      source: backblaze-backup
+    initdb:
       database: startsch
       owner: startsch
-  externalClusters:
-    - name: backblaze-backup
-      plugin:
-        name: barman-cloud.cloudnative-pg.io
-        enabled: true # needed otherwise ArgoCD complains about being OutOfSync
-        isWALArchiver: false # needed otherwise ArgoCD complains about being OutOfSync
-        parameters:
-          barmanObjectName: startsch-backups
-          serverName: startsch-db
+
+  # Restore from a backup (leave after restoring finished)
+#  bootstrap:
+#    recovery:
+#      source: backblaze-backup
+#      database: startsch
+#      owner: startsch
+#  externalClusters:
+#    - name: backblaze-backup
+#      plugin:
+#        name: barman-cloud.cloudnative-pg.io
+#        enabled: true # needed otherwise ArgoCD complains about being OutOfSync
+#        isWALArchiver: false # needed otherwise ArgoCD complains about being OutOfSync
+#        parameters:
+#          barmanObjectName: startsch-backups
+#          serverName: startsch-db
 
 ---
 

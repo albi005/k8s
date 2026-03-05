@@ -27,8 +27,7 @@ loki:
 deploymentMode: SingleBinary
 singleBinary:
   replicas: 1
-  persistence:
-    storageClass: memory-hdd
+  persistence: {}
   resources:
     limits:
       cpu: 1
@@ -90,8 +89,7 @@ minio:
       cpu: 200m
       memory: 256Mi
       ephemeral-storage: 200Mi
-  persistence:
-    storageClass: memory-hdd
+  persistence: {}
 gateway:
   affinity: {} # allow scheduling 2 gateways on the same node, needed when updating
   resources:
