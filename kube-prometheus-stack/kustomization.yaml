@@ -6,13 +6,27 @@ helmCharts:
   - name: kube-prometheus-stack
     repo: https://prometheus-community.github.io/helm-charts
     version: 81.2.0
-    releaseName: kube-prometheus-stack
+    releaseName: ks
     namespace: monitoring
     includeCRDs: true
     
     # https://github.com/prometheus-community/helm-charts/blob/main/charts/kube-prometheus-stack/values.yaml
     valuesInline:
+      fullnameOverride: ks
+
       nodeExporter:
+        enabled: false
+
+      # These components don't exist in a vCluster, so disable them
+      # to avoid unnecessary services and to keep synced label values
+      # under the 63-character Kubernetes limit.
+      kubeControllerManager:
+        enabled: false
+      kubeEtcd:
+        enabled: false
+      kubeProxy:
+        enabled: false
+      kubeScheduler:
         enabled: false
 
       alertmanager:
