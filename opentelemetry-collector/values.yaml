@@ -42,7 +42,7 @@ config:
       tls:
         insecure: true
     otlphttp/prometheus:
-      endpoint: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090/api/v1/otlp
+      endpoint: http://ks-prometheus.monitoring.svc.cluster.local:9090/api/v1/otlp
       tls:
         insecure: true
 
