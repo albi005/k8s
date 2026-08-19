@@ -27,7 +27,6 @@ const outputKey = createHash('sha256').update(readFileSync('cdk8s.yaml')).digest
 const cachedImports = join(CACHE_DIR, 'out', outputKey, 'imports');
 if (existsSync(cachedImports)) {
   rmSync(OUTDIR, { recursive: true, force: true });
-  mkdirSync(OUTDIR, { recursive: true });
   symlinkSync(cachedImports, OUTDIR, 'dir');
   console.error(`cached (${outputKey.slice(0, 8)}): linked -> ${OUTDIR}`);
   process.exit(0);

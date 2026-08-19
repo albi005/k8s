@@ -1,6 +1,6 @@
 import { Construct } from 'constructs';
 import { App, Chart } from 'cdk8s';
-import { KubeDeployment, KubeService, Quantity } from './imports/k8s';
+import { KubeDeployment, KubeService, Quantity } from '../imports/k8s';
 
 /**
  * A trivial cdk8s app that renders a Deployment + Service, proving that

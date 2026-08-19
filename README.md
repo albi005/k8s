@@ -49,23 +49,27 @@ ArgoCD checks each directory (except the ones starting with a `.`). If it sees `
 
 ### cdk8s apps
 
-Directories containing a `cdk8s.yaml` are synthesized with cdk8s by an ArgoCD
+Directories containing an `app.ts` are synthesized with cdk8s by an ArgoCD
 [Config Management Plugin](https://argo-cd.readthedocs.io/en/stable/operator-manual/config-management-plugins/)
-(sidecar on the repo-server, see `argocd/kustomization.yaml`). Such an app is a
-self-contained bun/cdk8s project:
+(sidecar on the repo-server, see `argocd/kustomization.yaml`). There is a single
+cdk8s project for the whole repo: the shared `cdk8s.yaml` (imports) and
+`package.json` (deps) live at the top level, and each cdk8s app is just a
+directory with an `app.ts`:
 
 ```
-my-app/
-  cdk8s.yaml    # language: typescript + imports
-  package.json  # scripts: "import": "cdk8s import", "synth": "cdk8s synth --app \"bun app.ts\""
-  app.ts        # the cdk8s app entrypoint (Chart(s) + app.synth())
-  bun.lock
+<repo root>/
+  cdk8s.yaml        # language: typescript + imports (shared)
+  package.json      # deps: cdk8s, constructs; devDeps: cdk8s-cli (shared)
+  imports/          # generated (gitignored)
+  my-app/
+    app.ts          # the cdk8s app entrypoint (Chart(s) + app.synth())
 ```
 
-`imports/`, `dist/` and `node_modules/` are generated and gitignored. The CMP
-runs `bun install`, `cdk8s import`, `cdk8s synth` and feeds `dist/*.k8s.yaml` to
-ArgoCD. The CMP sidecar only needs `bun`; cdk8s/cdk8s-cli are installed per-app
-from `package.json`. See `demo/` for a minimal example.
+`app.ts` imports from `../imports/k8s`. The CMP runs from the repo root:
+`bun install`, `cdk8s import`, then synthesizes *only that app's* `app.ts` into a
+per-app `dist/<app>/` and feeds `dist/<app>/*.k8s.yaml` to ArgoCD. The sidecar
+image is `nixery.dev/bun/kubernetes-helm/bash/coreutils/cacert/nodejs` (nixery
+bundles `bun`, `helm`, `node`, and a shell). See `demo/` for a minimal example.
 
 ## Documentation
 

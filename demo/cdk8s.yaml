@@ -1,4 +1,0 @@
-language: typescript
-
-imports:
-  - k8s@1.36.0 # version from https://github.com/cdk8s-team/cdk8s/tree/master/kubernetes-schemas
