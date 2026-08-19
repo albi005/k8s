@@ -16,6 +16,7 @@ imports:
 
   # NOTE: You can only have one .yaml CRD file per API group (like networking.k8s.io),
   # as they don't get merged, instead the new one replaces the old one.
+  # https://github.com/cdk8s-team/cdk8s-cli/issues/3797
   - https://raw.githubusercontent.com/argoproj/argo-cd/v3.2.5/manifests/install.yaml
   - https://github.com/cert-manager/cert-manager/releases/download/v1.19.2/cert-manager.crds.yaml
   - https://raw.githubusercontent.com/cloudnative-pg/cloudnative-pg/v1.28.0/releases/cnpg-1.28.0.yaml
