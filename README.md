@@ -42,9 +42,30 @@ Create a new directory containing
     [`helmCharts:`](https://kubectl.docs.kubernetes.io/references/kustomize/builtins/#_helmchartinflationgenerator_)
     to install Helm charts. Set values either using `valuesInline:` or by creating a `values.yaml` and
     referencing it using `valuesFile:`.
+- a cdk8s app: a `cdk8s.yaml` + `app.ts` (see below).
 
 ArgoCD checks each directory (except the ones starting with a `.`). If it sees `kustomization.yaml`, it `kubectl apply --kustomize`s it, otherwise it applies
 `.yaml` files using `kubectl apply`.
+
+### cdk8s apps
+
+Directories containing a `cdk8s.yaml` are synthesized with cdk8s by an ArgoCD
+[Config Management Plugin](https://argo-cd.readthedocs.io/en/stable/operator-manual/config-management-plugins/)
+(sidecar on the repo-server, see `argocd/kustomization.yaml`). Such an app is a
+self-contained bun/cdk8s project:
+
+```
+my-app/
+  cdk8s.yaml    # language: typescript + imports
+  package.json  # scripts: "import": "cdk8s import", "synth": "cdk8s synth --app \"bun app.ts\""
+  app.ts        # the cdk8s app entrypoint (Chart(s) + app.synth())
+  bun.lock
+```
+
+`imports/`, `dist/` and `node_modules/` are generated and gitignored. The CMP
+runs `bun install`, `cdk8s import`, `cdk8s synth` and feeds `dist/*.k8s.yaml` to
+ArgoCD. The CMP sidecar only needs `bun`; cdk8s/cdk8s-cli are installed per-app
+from `package.json`. See `demo/` for a minimal example.
 
 ## Documentation
 

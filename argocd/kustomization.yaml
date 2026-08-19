@@ -22,6 +22,25 @@ helmCharts:
           # https://argo-cd.readthedocs.io/en/stable/user-guide/kustomize/#kustomizing-helm-charts
           kustomize.buildOptions: "--enable-helm"
 
+        # Sidecar Config Management Plugin for cdk8s apps.
+        # Any top-level directory containing a `cdk8s.yaml` is synthesized with cdk8s.
+        # https://argo-cd.readthedocs.io/en/stable/operator-manual/config-management-plugins/
+        cmp:
+          create: true
+          plugins:
+            cdk8s:
+              discover:
+                fileName: "cdk8s.yaml"
+              generate:
+                command: [sh, -c]
+                args:
+                  - |
+                    set -e
+                    if [ -f bun.lock ]; then bun install --frozen-lockfile >&2; else bun install >&2; fi
+                    bun run import >&2
+                    bun run synth >&2
+                    cat dist/*.k8s.yaml
+
       global:
         networkPolicy:
           create: true
@@ -109,6 +128,40 @@ helmCharts:
               cpu: 50m
               memory: 32Mi
               ephemeral-storage: 50Mi
+
+        # Sidecar running the `cdk8s` CMP. Image only needs bun; cdk8s + cdk8s-cli
+        # are installed per-app by `bun install` in the generate command above.
+        extraContainers:
+          - name: cmp-cdk8s
+            command: ["/var/run/argocd/argocd-cmp-server"]
+            image: oven/bun:1
+            imagePullPolicy: IfNotPresent
+            env:
+              # bun needs a writable HOME for its install cache; /tmp is the cmp-tmp emptyDir.
+              - name: HOME
+                value: /tmp
+            securityContext:
+              runAsNonRoot: true
+              runAsUser: 999
+            volumeMounts:
+              - mountPath: /var/run/argocd
+                name: var-files
+              - mountPath: /home/argocd/cmp-server/plugins
+                name: plugins
+              - mountPath: /home/argocd/cmp-server/config/plugin.yaml
+                subPath: cdk8s.yaml
+                name: argocd-cmp-cm
+              # Do not share the repo-server's /tmp volume (path traversal mitigation).
+              - mountPath: /tmp
+                name: cmp-tmp
+
+        volumes:
+          - name: argocd-cmp-cm
+            configMap:
+              name: argocd-cmp-cm
+          - name: cmp-tmp
+            emptyDir: {}
+
         resources:
           limits:
             cpu: 700m
