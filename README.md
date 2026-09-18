@@ -1,5 +1,6 @@
 
 TODO: Update README
+TODO: is the resource request/limit bug not mentioned anywhere?
 
 # Kir-Dev Kubernetes configuration
 
@@ -16,8 +17,8 @@ the [vCluster CLI](https://www.vcluster.com/install)
 git clone https://github.com/kir-dev/k8s
 cd k8s
 
-# create the k3d cluster + nested vClusters, serve this repo over a local
-# git daemon, install ArgoCD and the bootstrap ApplicationSet
+# create the k3d cluster + nested vClusters, an in-cluster git server,
+# install ArgoCD and the bootstrap ApplicationSet
 bun install
 bun run local-cluster:up
 

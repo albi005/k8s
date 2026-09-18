@@ -7,7 +7,8 @@
  * local cluster, from a checkout whose `origin` is the source repository:
  *
  *   - prod  -> https://github.com/kir-dev/k8s
- *   - local -> git://host.k3d.internal:9418/k8s (git daemon, see PLAN.md)
+ *   - local -> git://git-server.argocd.svc.cluster.local:9418/k8s.git
+ *              (in-cluster git daemon, see .dev/local-cluster.ts)
  *
  * `local-cluster:*` sets K8S_LOCAL=1 when it renders the bootstrap
  * ApplicationSet on the developer's machine (where origin is a normal remote).

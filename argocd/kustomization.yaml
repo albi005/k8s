@@ -163,9 +163,25 @@ helmCharts:
               # bun needs a writable HOME for its install cache; /tmp is the cmp-tmp emptyDir.
               - name: HOME
                 value: /tmp
+              # A cold `cdk8s:import` spawns one process per import; 16 of them
+              # OOM the sidecar. Keep it small; the output is cached afterwards.
+              - name: CDK8S_IMPORT_PARALLELISM
+                value: "4"
             securityContext:
               runAsNonRoot: true
               runAsUser: 999
+            # Explicit requests/limits are required: the local vCluster doesn't
+            # reflect injected defaults, and an ArgoCD controller panics
+            # ("assignment to entry in nil map") on containers with none.
+            resources:
+              requests:
+                cpu: 100m
+                memory: 256Mi
+                ephemeral-storage: 0
+              limits:
+                cpu: 2000m
+                memory: 2Gi
+                ephemeral-storage: 2Gi
             volumeMounts:
               - mountPath: /var/run/argocd
                 name: var-files

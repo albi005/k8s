@@ -49,7 +49,7 @@ class AppSetChart extends Chart {
           destination: { name: 'in-cluster' },
           syncPolicy: {
             automated: { prune: true, selfHeal: true },
-            syncOptions: ['ServerSideApply=true'],
+            syncOptions: ['ServerSideApply=true', 'CreateNamespace=true'],
           },
         },
       },

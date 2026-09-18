@@ -1,32 +1,34 @@
 /**
  * Local test cluster lifecycle (PLAN.md).
  *
- *   bun run local-cluster:up     k3d + nested vClusters + git daemon + ArgoCD + ApplicationSet
- *   bun run local-cluster:sync   advance `argocd-head` to HEAD and let ArgoCD reconcile
- *   bun run local-cluster:down   stop the daemon and delete the k3d cluster
+ *   bun run local-cluster:up     k3d + nested vClusters + ArgoCD + git server + ApplicationSet
+ *   bun run local-cluster:sync   push HEAD to the in-cluster git server and reconcile
+ *   bun run local-cluster:down   delete the k3d cluster
  *
- * The git daemon serves this working copy directly (no bare clone), so the
- * local ArgoCD renders your uncommitted work once it is on the `argocd-head`
- * branch. `sync` refuses to advance the branch while the tree is dirty unless
- * you pass --yes.
+ * ArgoCD runs in the innermost vCluster (vc2), so a git daemon on the host
+ * isn't reachable from it (nested DNS + host firewall). Instead an in-cluster
+ * `git-server` serves a bare repo; `sync` pushes your committed HEAD to it via
+ * `kubectl port-forward`, and ArgoCD renders from a `git://` URL. `sync`
+ * refuses to push while the tree is dirty unless you pass --yes.
  */
 import { $ } from 'bun';
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { basename, dirname, join, resolve } from 'node:path';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 import { createInterface } from 'node:readline/promises';
 
 const ROOT = resolve(import.meta.dir, '..');
 const CLUSTER = process.env.LOCAL_CLUSTER_NAME ?? 'mycluster';
 const K3S_IMAGE = process.env.LOCAL_K3S_IMAGE ?? 'rancher/k3s:v1.35.0-k3s1';
-const GIT_PORT = Number(process.env.DEV_GIT_PORT ?? 9418);
-const GIT_HOST = process.env.DEV_GIT_HOST ?? 'host.k3d.internal';
-const GIT_BASE = process.env.DEV_GIT_BASE ?? dirname(ROOT);
-const REPO_NAME = basename(ROOT);
-const REPO_URL = `git://${GIT_HOST}:${GIT_PORT}/${REPO_NAME}`;
 const BRANCH = 'argocd-head';
+const GIT_NAMESPACE = 'argocd';
+const GIT_SERVICE = 'git-server';
+const GIT_REPO = 'k8s.git';
+/** Reachable from inside the cluster (vc2). */
+const GIT_SERVICE_URL = `git://${GIT_SERVICE}.${GIT_NAMESPACE}.svc.cluster.local:9418/${GIT_REPO}`;
+/** Local port used to push into the cluster through `kubectl port-forward`. */
+const FORWARD_PORT = Number(process.env.DEV_GIT_FORWARD_PORT ?? 19418);
 const STATE_DIR = join('/tmp', 'k8s-local-cluster');
-const DAEMON_PID = join(STATE_DIR, 'git-daemon.pid');
 mkdirSync(STATE_DIR, { recursive: true });
 
 const VCLUSTERS = [
@@ -74,51 +76,6 @@ async function confirm(question: string): Promise<boolean> {
   const answer = (await rl.question(`${question} [y/N] `)).trim().toLowerCase();
   rl.close();
   return answer === 'y' || answer === 'yes';
-}
-
-// --- git daemon -----------------------------------------------------------
-
-function daemonPid(): number | undefined {
-  if (!existsSync(DAEMON_PID)) return undefined;
-  const pid = Number(readFileSync(DAEMON_PID, 'utf-8').trim());
-  try {
-    process.kill(pid, 0);
-    return pid;
-  } catch {
-    return undefined;
-  }
-}
-
-async function startDaemon(): Promise<void> {
-  const running = daemonPid();
-  if (running) {
-    console.log(`✓ git daemon already running (pid ${running})`);
-    return;
-  }
-  const started = await $`git daemon --reuseaddr --export-all --base-path=${GIT_BASE} --listen=0.0.0.0 --port=${String(GIT_PORT)} --pid-file=${DAEMON_PID} --detach`
-    .cwd(ROOT)
-    .nothrow();
-  if (started.exitCode !== 0 || !daemonPid()) {
-    console.error(`✗ failed to start git daemon on port ${GIT_PORT}. Try DEV_GIT_PORT=<highport> or sudo.`);
-    process.exit(1);
-  }
-  console.log(`✓ git daemon on 0.0.0.0:${GIT_PORT} serving ${GIT_BASE}`);
-}
-
-function stopDaemon(): void {
-  const pid = daemonPid();
-  if (!pid) {
-    console.log('git daemon not running');
-    return;
-  }
-  process.kill(pid, 'SIGTERM');
-  rmSync(DAEMON_PID, { force: true });
-  console.log(`✓ stopped git daemon (pid ${pid})`);
-}
-
-async function advanceBranch(): Promise<void> {
-  await check($`git -C ${ROOT} update-ref refs/heads/${BRANCH} HEAD`);
-  console.log(`✓ ${BRANCH} -> ${await text($`git -C ${ROOT} rev-parse --short HEAD`)}`);
 }
 
 // --- cluster --------------------------------------------------------------
@@ -184,6 +141,43 @@ async function assertLocalContext(): Promise<void> {
   }
 }
 
+// --- git server -----------------------------------------------------------
+
+async function installGitServer(): Promise<void> {
+  await check($`kubectl apply -f ${join(ROOT, '.dev/git-server.yaml')}`);
+  await check($`kubectl -n ${GIT_NAMESPACE} rollout status deployment/${GIT_SERVICE} --timeout=180s`);
+}
+
+/**
+ * Push the current HEAD into the in-cluster bare repo as `argocd-head`.
+ *
+ * The local port-forward is the only path from the host into vc2, so the
+ * cluster's own git daemon can't be reached directly.
+ */
+async function publishHead(): Promise<void> {
+  const forward = Bun.spawn(
+    ['kubectl', '-n', GIT_NAMESPACE, 'port-forward', `svc/${GIT_SERVICE}`, `${FORWARD_PORT}:9418`],
+    { stdout: 'ignore', stderr: 'ignore' },
+  );
+  try {
+    const localUrl = `git://127.0.0.1:${FORWARD_PORT}/${GIT_REPO}`;
+    let ready = false;
+    for (let i = 0; i < 40 && !ready; i++) {
+      ready = await ok($`timeout 3 git ls-remote ${localUrl}`);
+      if (!ready) await Bun.sleep(500);
+    }
+    if (!ready) {
+      console.error(`✗ could not reach the in-cluster git server on 127.0.0.1:${FORWARD_PORT}`);
+      process.exit(1);
+    }
+    await check($`git -C ${ROOT} push --force ${localUrl} HEAD:refs/heads/${BRANCH}`);
+  } finally {
+    forward.kill();
+  }
+}
+
+// --- argocd ---------------------------------------------------------------
+
 async function installArgoCd(): Promise<void> {
   await check($`bash -c ${'kubectl kustomize --enable-helm argocd/ | kubectl apply -f -'}`.cwd(ROOT));
   await check(
@@ -235,13 +229,13 @@ async function up(): Promise<void> {
   await ensureVcluster(VCLUSTERS[1]);
 
   // ArgoCD lives in the innermost vCluster (vc2) locally (README.md).
-  await advanceBranch();
-  await startDaemon();
   await applyDevStorageClasses();
   await installArgoCd();
+  await installGitServer();
 
   process.env.K8S_LOCAL = '1';
-  process.env.K8S_LOCAL_REPO_URL = REPO_URL;
+  process.env.K8S_LOCAL_REPO_URL = GIT_SERVICE_URL;
+  await publishHead();
   await applyBootstrapApplicationSet();
 
   await sync();
@@ -251,14 +245,14 @@ async function sync(): Promise<void> {
   await assertLocalContext();
 
   if (await isDirty()) {
-    console.warn('⚠ the working tree is dirty. ArgoCD will render the last commit on');
-    console.warn(`  ${BRANCH}, not your uncommitted changes.`);
+    console.warn('⚠ the working tree is dirty. Only committed work is pushed to');
+    console.warn(`  ${BRANCH}, so ArgoCD will not see your uncommitted changes.`);
     if (!(await confirm('Continue anyway?'))) process.exit(1);
   }
 
-  await advanceBranch();
+  await publishHead();
 
-  // Force the ApplicationSet controller to re-read the moved branch. The
+  // Force the ApplicationSet controller to re-read the pushed branch. The
   // `apps` ApplicationSet is self-managed, so syncing its Application updates
   // the generator; the child Applications follow.
   if (await have('argocd')) {
@@ -272,7 +266,7 @@ async function sync(): Promise<void> {
   console.log(`
 ──────────────────────────────────────────────
 Local cluster ready.
-  repo:      ${REPO_URL}
+  repo:      ${GIT_SERVICE_URL}
   branch:    ${BRANCH}
   watch:     kubectl -n argocd get applications -w
   portal:    kubectl -n argocd port-forward svc/argocd-server 8080:443
@@ -281,7 +275,6 @@ Local cluster ready.
 }
 
 async function down(): Promise<void> {
-  stopDaemon();
   if (await k3dClusterExists()) {
     await check($`k3d cluster delete ${CLUSTER}`);
   } else {

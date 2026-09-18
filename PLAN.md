@@ -31,6 +31,7 @@ and a local cluster that can be brought up/down with bun scripts.
     cdk8s-synth.ts      # render one APP_NAME/app.ts
     is-local.ts         # isLocal() / sourceRepoUrl() / sourceRevision()
     local-cluster.ts    # local-cluster:up / sync / down
+    git-server.yaml     # in-cluster bare repo + git daemon for the local cluster
     renovate.ts         # `bun run renovate APP_NAME` wrapper
     renovate-config.ts  # appConfig() helper imported by each app's renovate.ts
   application-set/
@@ -57,23 +58,23 @@ bun run cdk8s:import
 # .dev/cdk8s-synth.ts imports it and calls .synth() into $CDK8S_OUTDIR.
 bun run cdk8s:synth APP_NAME
 
-# bring up a local k3d cluster + nested vClusters (see README.md), a git daemon
-# serving this working copy, ArgoCD, and the bootstrap ApplicationSet.
+# bring up a local k3d cluster + nested vClusters (see README.md), an in-cluster
+# git server, ArgoCD, and the bootstrap ApplicationSet.
 bun run local-cluster:up
   k3d cluster create
   vcluster create vc1, vc2   # vc2's prod-only memory-ssd persistence is stripped
-  git daemon                 # serves this repo; `argocd-head` points at HEAD
   kubectl apply argocd       # installs ArgoCD (kustomize + helm)
+  kubectl apply .dev/git-server.yaml   # bare repo + git daemon in vc2
+  push HEAD -> argocd-head via kubectl port-forward
   K8S_LOCAL=1 bun run cdk8s:synth application-set | kubectl apply -f -
   bun run local-cluster:sync
 
 # publish local changes and let ArgoCD reconcile
 bun run local-cluster:sync
   # warns if the repo is dirty (ArgoCD only sees committed work)
-  # moves `argocd-head` to HEAD
+  # pushes HEAD to the in-cluster git server as `argocd-head` (port-forward)
   # refreshes the `apps` ApplicationSet (restarts the controller if no argocd CLI)
 bun run local-cluster:down
-  git daemon stop
   k3d cluster delete
 
 # App-specific GitHub Actions, runs in the app's repo
@@ -96,7 +97,8 @@ bun run renovate APP_NAME
   origin is `https://github.com/kir-dev/k8s`.
 
 `sourceRepoUrl()`/`sourceRevision()` therefore render kir-dev/k8s `HEAD` in prod
-and `git://<host>:<port>/<repo>` `argocd-head` locally. `local-cluster:up` sets
+and the in-cluster `git://git-server.argocd.svc.cluster.local:9418/k8s.git`
+`argocd-head` locally. `local-cluster:up` sets
 `K8S_LOCAL=1 K8S_LOCAL_REPO_URL=...` for the one-time bootstrap synth.
 
 ## cdk8s apps have the following files
