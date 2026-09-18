@@ -1,6 +1,6 @@
 import { Construct } from 'constructs';
 import { App, Chart } from 'cdk8s';
-import { KubeDeployment, KubeService, Quantity } from '../imports/k8s';
+import { KubeDeployment, KubeNamespace, KubeService, Quantity } from '../imports/k8s';
 import { versions } from './versions.ts';
 
 /**
@@ -12,10 +12,13 @@ class DemoChart extends Chart {
   constructor(scope: Construct, ns: string) {
     super(scope, ns);
 
+    new KubeNamespace(this, 'demo-namespace', { metadata: { name: 'demo' } });
+
     const labels = { app: 'demo' };
+    const metadata = { name: 'demo', namespace: 'demo', labels };
 
     new KubeDeployment(this, 'demo-deployment', {
-      metadata: { name: 'demo', labels },
+      metadata,
       spec: {
         replicas: 2,
         selector: { matchLabels: labels },
@@ -46,7 +49,7 @@ class DemoChart extends Chart {
     });
 
     new KubeService(this, 'demo-service', {
-      metadata: { name: 'demo', labels },
+      metadata,
       spec: {
         selector: labels,
         ports: [{ port: 80, targetPort: 80 }],

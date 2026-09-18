@@ -21,6 +21,10 @@ const ROOT = resolve(import.meta.dir, '..');
 export async function isLocal(): Promise<boolean> {
   const env = process.env.K8S_LOCAL;
   if (env !== undefined) return env !== '' && env !== '0' && env !== 'false';
+  // ArgoCD passes the Application's source URL to Config Management Plugins,
+  // and it does not always configure a git remote named `origin`.
+  const argocdSource = process.env.ARGOCD_APP_SOURCE_REPO_URL;
+  if (argocdSource) return argocdSource.startsWith('git://');
   return (await repoUrl()).startsWith('git://');
 }
 

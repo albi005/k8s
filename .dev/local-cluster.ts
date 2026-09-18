@@ -233,11 +233,6 @@ async function up(): Promise<void> {
   await installArgoCd();
   await installGitServer();
 
-  process.env.K8S_LOCAL = '1';
-  process.env.K8S_LOCAL_REPO_URL = GIT_SERVICE_URL;
-  await publishHead();
-  await applyBootstrapApplicationSet();
-
   await sync();
 }
 
@@ -251,6 +246,13 @@ async function sync(): Promise<void> {
   }
 
   await publishHead();
+
+  // Re-apply the bootstrap ApplicationSet from the working tree so it always
+  // points at the in-cluster git server (self-managed ArgoCD would otherwise
+  // be able to flip it to the prod URL).
+  process.env.K8S_LOCAL = '1';
+  process.env.K8S_LOCAL_REPO_URL = GIT_SERVICE_URL;
+  await applyBootstrapApplicationSet();
 
   // Force the ApplicationSet controller to re-read the pushed branch. The
   // `apps` ApplicationSet is self-managed, so syncing its Application updates
