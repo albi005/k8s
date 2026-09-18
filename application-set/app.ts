@@ -16,11 +16,8 @@ import { sourceRepoUrl, sourceRevision } from '../.dev/is-local.ts';
  * `argocd-head` branch when `isLocal()`.
  */
 class AppSetChart extends Chart {
-  constructor(scope: Construct, id: string) {
+  constructor(scope: Construct, id: string, repoUrl: string, revision: string) {
     super(scope, id);
-
-    const repoUrl = sourceRepoUrl();
-    const revision = sourceRevision();
 
     const spec: ApplicationSetSpec = {
       goTemplate: true,
@@ -66,6 +63,6 @@ class AppSetChart extends Chart {
 }
 
 const app = new App();
-new AppSetChart(app, 'application-set');
+new AppSetChart(app, 'application-set', await sourceRepoUrl(), await sourceRevision());
 
 export default app;

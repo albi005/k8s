@@ -1,4 +1,3 @@
-#!/usr/bin/env bun
 /**
  * Render a single cdk8s Application: ./APP_NAME/app.ts.
  *

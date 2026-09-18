@@ -12,24 +12,22 @@
  * `local-cluster:*` sets K8S_LOCAL=1 when it renders the bootstrap
  * ApplicationSet on the developer's machine (where origin is a normal remote).
  */
-import { execFileSync } from 'node:child_process';
+import { $ } from 'bun';
+import { resolve } from 'node:path';
 
-export function isLocal(): boolean {
+const ROOT = resolve(import.meta.dir, '..');
+
+export async function isLocal(): Promise<boolean> {
   const env = process.env.K8S_LOCAL;
   if (env !== undefined) return env !== '' && env !== '0' && env !== 'false';
-  return repoUrl().startsWith('git://');
+  return (await repoUrl()).startsWith('git://');
 }
 
 /** The URL of the repository `app.ts` is currently being rendered from. */
-export function repoUrl(): string {
-  try {
-    return execFileSync('git', ['remote', 'get-url', 'origin'], {
-      encoding: 'utf-8',
-      stdio: ['ignore', 'pipe', 'ignore'],
-    }).trim();
-  } catch {
-    return '';
-  }
+export async function repoUrl(): Promise<string> {
+  const result = await $`git -C ${ROOT} remote get-url origin`.quiet().nothrow();
+  if (result.exitCode !== 0) return '';
+  return (await result.text()).trim();
 }
 
 /** Where Application sync from in production. */
@@ -45,12 +43,12 @@ export const LOCAL_REVISION = 'argocd-head';
  * developer's working copy; `local-cluster:up` passes K8S_LOCAL_REPO_URL when
  * bootstrapping from a checkout whose origin is still the normal remote.
  */
-export function sourceRepoUrl(): string {
-  if (!isLocal()) return PROD_REPO_URL;
-  return process.env.K8S_LOCAL_REPO_URL || repoUrl();
+export async function sourceRepoUrl(): Promise<string> {
+  if (!(await isLocal())) return PROD_REPO_URL;
+  return process.env.K8S_LOCAL_REPO_URL || (await repoUrl());
 }
 
 /** The revision the generated Applications should track. */
-export function sourceRevision(): string {
-  return isLocal() ? LOCAL_REVISION : 'HEAD';
+export async function sourceRevision(): Promise<string> {
+  return (await isLocal()) ? LOCAL_REVISION : 'HEAD';
 }

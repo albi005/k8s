@@ -1,4 +1,3 @@
-#!/usr/bin/env bun
 /**
  * Fast cdk8s import: download + generate .ts, in parallel.
  *
@@ -12,11 +11,11 @@
  *
  * Usage: bun .dev/cdk8s-import.ts [outdir]
  */
+import { $ } from 'bun';
 import { createHash } from 'node:crypto';
 import { readFileSync, existsSync, mkdirSync, rmSync, symlinkSync, cpSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
-import { spawn } from 'node:child_process';
 import { parse as parseYaml } from 'yaml';
 
 const CACHE_DIR = process.env.CDK8S_IMPORT_CACHE ?? join(homedir(), '.cache', 'cdk8s-imports');
@@ -43,25 +42,19 @@ const queue = [...imports];
 let running = 0;
 let failed = 0;
 
-function runWorker(spec: string): Promise<void> {
-  return new Promise((resolve) => {
-    const child = spawn(
-      'bun',
-      ['.dev/cdk8s-import-one.ts', spec, OUTDIR],
-      { stdio: ['ignore', 'inherit', 'inherit'] },
-    );
-    child.on('exit', (code) => {
-      if (code !== 0) failed++;
-      running--;
-      resolve();
-    });
-  });
+async function runWorker(spec: string): Promise<void> {
+  const result = await $`bun .dev/cdk8s-import-one.ts ${spec} ${OUTDIR}`.nothrow();
+  if (result.exitCode !== 0) failed++;
 }
 
 async function pump(): Promise<void> {
   while (queue.length > 0 && running < CONCURRENCY) {
     running++;
-    void runWorker(queue.shift()!).then(() => pump());
+    const spec = queue.shift()!;
+    void runWorker(spec).then(() => {
+      running--;
+      void pump();
+    });
   }
 }
 

@@ -1,4 +1,3 @@
-#!/usr/bin/env bun
 /**
  * Worker: import a single spec. Spawned in parallel by .dev/cdk8s-import.ts so
  * that each import's download + codegen runs on its own process (real

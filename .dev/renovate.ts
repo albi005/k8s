@@ -1,4 +1,3 @@
-#!/usr/bin/env bun
 /**
  * Run Renovate for a single app from that app's own CI pipeline (PLAN.md).
  *
@@ -12,7 +11,7 @@
  * This renders `<APP_NAME>/renovate.ts` (which typically imports
  * `appConfig()` from `.dev/renovate-config.ts`) and hands it to Renovate.
  */
-import { spawnSync } from 'node:child_process';
+import { $ } from 'bun';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -32,9 +31,6 @@ if (!existsSync(configFile)) {
   process.exit(1);
 }
 
-const result = spawnSync('bunx', [`renovate@${RENOVATE_VERSION}`], {
-  stdio: 'inherit',
-  env: { ...process.env, RENOVATE_CONFIG_FILE: configFile },
-});
-
-process.exit(result.status ?? 1);
+process.env.RENOVATE_CONFIG_FILE = configFile;
+const result = await $`bunx renovate@${RENOVATE_VERSION}`.nothrow();
+process.exit(result.exitCode ?? 1);

@@ -1,4 +1,3 @@
-#!/usr/bin/env bun
 /**
  * Local test cluster lifecycle (PLAN.md).
  *
@@ -11,8 +10,8 @@
  * branch. `sync` refuses to advance the branch while the tree is dirty unless
  * you pass --yes.
  */
-import { spawnSync } from 'node:child_process';
-import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { $ } from 'bun';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 import { createInterface } from 'node:readline/promises';
@@ -28,6 +27,7 @@ const REPO_URL = `git://${GIT_HOST}:${GIT_PORT}/${REPO_NAME}`;
 const BRANCH = 'argocd-head';
 const STATE_DIR = join('/tmp', 'k8s-local-cluster');
 const DAEMON_PID = join(STATE_DIR, 'git-daemon.pid');
+mkdirSync(STATE_DIR, { recursive: true });
 
 const VCLUSTERS = [
   { name: 'vc1', namespace: 'vc1', file: join(ROOT, '.vclusters/vc1/vcluster.yaml'), local: false },
@@ -38,35 +38,30 @@ const args = process.argv.slice(2);
 const command = args[0];
 const yes = args.includes('--yes') || args.includes('-y');
 
-function sh(cmd: string, argv: string[], opts: { input?: string; quiet?: boolean } = {}) {
-  const r = spawnSync(cmd, argv, {
-    cwd: ROOT,
-    input: opts.input,
-    encoding: 'utf-8',
-    stdio: opts.input !== undefined ? ['pipe', 'inherit', 'inherit'] : (opts.quiet ? 'pipe' : 'inherit'),
-  });
-  return { ok: r.status === 0, out: `${r.stdout ?? ''}${r.stderr ?? ''}`.trim() };
-}
+type ShellCmd = ReturnType<typeof $>;
 
-function must(cmd: string, argv: string[], opts: { input?: string; quiet?: boolean } = {}): string {
-  const r = sh(cmd, argv, opts);
-  if (!r.ok) {
-    console.error(`✗ ${cmd} ${argv.join(' ')} failed`);
+async function check(cmd: ShellCmd): Promise<void> {
+  const result = await cmd.nothrow();
+  if (result.exitCode !== 0) {
+    console.error('✗ command failed');
     process.exit(1);
   }
-  return r.out;
 }
 
-function have(cmd: string): boolean {
-  return sh('which', [cmd], { quiet: true }).ok;
+async function ok(cmd: ShellCmd): Promise<boolean> {
+  return (await cmd.quiet().nothrow()).exitCode === 0;
 }
 
-function git(...argv: string[]): string {
-  return must('git', ['-C', ROOT, ...argv], { quiet: true });
+async function text(cmd: ShellCmd): Promise<string> {
+  return (await cmd.quiet().nothrow().text()).trim();
 }
 
-function isDirty(): boolean {
-  return git('status', '--porcelain') !== '';
+function have(cmd: string): Promise<boolean> {
+  return ok($`which ${cmd}`);
+}
+
+async function isDirty(): Promise<boolean> {
+  return (await text($`git -C ${ROOT} status --porcelain`)) !== '';
 }
 
 async function confirm(question: string): Promise<boolean> {
@@ -94,20 +89,16 @@ function daemonPid(): number | undefined {
   }
 }
 
-function startDaemon(): void {
+async function startDaemon(): Promise<void> {
   const running = daemonPid();
   if (running) {
     console.log(`✓ git daemon already running (pid ${running})`);
     return;
   }
-  const r = sh('git', [
-    'daemon', '--reuseaddr', '--export-all',
-    `--base-path=${GIT_BASE}`,
-    '--listen=0.0.0.0', `--port=${GIT_PORT}`,
-    `--pid-file=${DAEMON_PID}`,
-    '--detach',
-  ]);
-  if (!r.ok || !daemonPid()) {
+  const started = await $`git daemon --reuseaddr --export-all --base-path=${GIT_BASE} --listen=0.0.0.0 --port=${String(GIT_PORT)} --pid-file=${DAEMON_PID} --detach`
+    .cwd(ROOT)
+    .nothrow();
+  if (started.exitCode !== 0 || !daemonPid()) {
     console.error(`✗ failed to start git daemon on port ${GIT_PORT}. Try DEV_GIT_PORT=<highport> or sudo.`);
     process.exit(1);
   }
@@ -125,32 +116,44 @@ function stopDaemon(): void {
   console.log(`✓ stopped git daemon (pid ${pid})`);
 }
 
-function advanceBranch(): void {
-  must('git', ['-C', ROOT, 'update-ref', `refs/heads/${BRANCH}`, 'HEAD'], { quiet: true });
-  console.log(`✓ ${BRANCH} -> ${git('rev-parse', '--short', 'HEAD')}`);
+async function advanceBranch(): Promise<void> {
+  await check($`git -C ${ROOT} update-ref refs/heads/${BRANCH} HEAD`);
+  console.log(`✓ ${BRANCH} -> ${await text($`git -C ${ROOT} rev-parse --short HEAD`)}`);
 }
 
 // --- cluster --------------------------------------------------------------
 
-function k3dClusterExists(): boolean {
-  const r = sh('k3d', ['cluster', 'list', '-o', 'json'], { quiet: true });
-  if (!r.ok) return false;
+async function k3dClusterExists(): Promise<boolean> {
+  const r = await $`k3d cluster list -o json`.quiet().nothrow();
+  if (r.exitCode !== 0) return false;
   try {
-    const clusters = JSON.parse(r.out) as { name: string }[];
+    const clusters = JSON.parse(await r.text()) as { name: string }[];
     return clusters.some((c) => c.name === CLUSTER);
   } catch {
     return false;
   }
 }
 
-function vclusterExists(name: string): boolean {
-  const r = sh('vcluster', ['list', '-o', 'json'], { quiet: true });
-  if (!r.ok) return false;
+async function vclusterExists(name: string): Promise<boolean> {
+  const r = await $`vcluster list -o json`.quiet().nothrow();
+  if (r.exitCode !== 0) return false;
   try {
-    const vcs = JSON.parse(r.out) as { name: string }[];
+    const vcs = JSON.parse(await r.text()) as { name: string }[];
     return vcs.some((v) => v.name === name);
   } catch {
     return false;
+  }
+}
+
+/** Create the vCluster on the current context, or connect to it if it exists. */
+async function ensureVcluster(v: (typeof VCLUSTERS)[number]): Promise<void> {
+  if (!(await vclusterExists(v.name))) {
+    await check($`vcluster create ${v.name} -n ${v.namespace} -f ${localVclusterFile(v)}`);
+    return;
+  }
+  console.log(`✓ vcluster ${v.name} exists`);
+  if (!(await currentContext()).includes(`vcluster_${v.name}_`)) {
+    await check($`vcluster connect ${v.name} -n ${v.namespace}`);
   }
 }
 
@@ -168,12 +171,12 @@ function localVclusterFile(v: (typeof VCLUSTERS)[number]): string {
   return v.file;
 }
 
-function currentContext(): string {
-  return sh('kubectl', ['config', 'current-context'], { quiet: true }).out;
+async function currentContext(): Promise<string> {
+  return text($`kubectl config current-context`);
 }
 
-function assertLocalContext(): void {
-  const ctx = currentContext();
+async function assertLocalContext(): Promise<void> {
+  const ctx = await currentContext();
   if (!ctx.includes('vcluster') || !ctx.includes(CLUSTER)) {
     console.error(`✗ current kubectl context "${ctx}" does not look like the local cluster (${CLUSTER}).`);
     console.error('  Run `vcluster connect vc2 -n vc2` (or re-run local-cluster:up) first.');
@@ -181,97 +184,89 @@ function assertLocalContext(): void {
   }
 }
 
-function applyDevStorageClasses(): void {
-  must('kubectl', ['apply', '-f', join(ROOT, '.dev/dev-storage-classes.yaml')]);
+async function installArgoCd(): Promise<void> {
+  await check($`bash -c ${'kubectl kustomize --enable-helm argocd/ | kubectl apply -f -'}`.cwd(ROOT));
+  await check(
+    $`kubectl wait --for=condition=Established --timeout=180s crd/applications.argoproj.io crd/applicationsets.argoproj.io`,
+  );
+  await check($`kubectl -n argocd rollout status deployment/argocd-applicationset-controller --timeout=180s`);
 }
 
-function installArgoCd(): void {
-  must('bash', ['-c', 'kubectl kustomize --enable-helm argocd/ | kubectl apply -f -']);
-  must('kubectl', [
-    'wait', '--for=condition=Established', '--timeout=180s',
-    'crd/applications.argoproj.io', 'crd/applicationsets.argoproj.io',
-  ]);
-  must('kubectl', ['-n', 'argocd', 'rollout', 'status', 'deployment/argocd-applicationset-controller', '--timeout=180s']);
+async function applyDevStorageClasses(): Promise<void> {
+  await check($`kubectl apply -f ${join(ROOT, '.dev/dev-storage-classes.yaml')}`);
 }
 
-function applyBootstrapApplicationSet(): void {
-  must('bun', ['run', 'cdk8s:synth', 'application-set'], { quiet: true });
+async function applyBootstrapApplicationSet(): Promise<void> {
+  await check($`bun run cdk8s:synth application-set`.cwd(ROOT));
   // cdk8s-synth prints progress to stderr; read the generated file instead.
   const manifest = readFileSync(join(ROOT, 'dist/application-set/application-set.k8s.yaml'), 'utf-8');
-  must('kubectl', ['apply', '-f', '-'], { input: manifest });
+  await check($`echo ${manifest} | kubectl apply -f -`);
 }
 
 // --- commands -------------------------------------------------------------
 
 async function up(): Promise<void> {
   for (const bin of ['k3d', 'vcluster', 'kubectl', 'helm', 'git', 'bun']) {
-    if (!have(bin)) {
+    if (!(await have(bin))) {
       console.error(`✗ missing required tool: ${bin}`);
       process.exit(1);
     }
   }
 
-  if (isDirty()) {
+  if (await isDirty()) {
     console.warn('⚠ the working tree has uncommitted changes.');
     console.warn('  ArgoCD only sees committed work; run `bun run local-cluster:sync` to publish HEAD.');
   }
 
-  if (!existsSync(join(ROOT, 'node_modules'))) must('bun', ['install']);
-  must('bun', ['run', 'cdk8s:import']);
+  if (!existsSync(join(ROOT, 'node_modules'))) await check($`bun install`.cwd(ROOT));
+  await check($`bun run cdk8s:import`.cwd(ROOT));
 
-  if (!k3dClusterExists()) {
-    must('k3d', ['cluster', 'create', CLUSTER, '--image', K3S_IMAGE]);
+  if (!(await k3dClusterExists())) {
+    await check($`k3d cluster create ${CLUSTER} --image ${K3S_IMAGE}`);
   } else {
     console.log(`✓ k3d cluster ${CLUSTER} exists`);
   }
-  must('kubectl', ['config', 'use-context', `k3d-${CLUSTER}`], { quiet: true });
 
-  for (const v of VCLUSTERS) {
-    if (vclusterExists(v.name)) {
-      console.log(`✓ vcluster ${v.name} exists`);
-      continue;
-    }
-    must('vcluster', ['create', v.name, '-n', v.namespace, '-f', localVclusterFile(v)]);
-  }
+  // vc1 is created on the k3d cluster, vc2 nested inside vc1. On a re-run the
+  // existing vCluster must be re-connected so the next one lands in the right
+  // parent.
+  await check($`kubectl config use-context k3d-${CLUSTER}`);
+  await ensureVcluster(VCLUSTERS[0]);
+  await ensureVcluster(VCLUSTERS[1]);
 
-  // `vcluster create` leaves the context on the last created vcluster (vc2),
-  // which is where ArgoCD lives locally (README.md).
-  advanceBranch();
-  startDaemon();
-  applyDevStorageClasses();
-  installArgoCd();
+  // ArgoCD lives in the innermost vCluster (vc2) locally (README.md).
+  await advanceBranch();
+  await startDaemon();
+  await applyDevStorageClasses();
+  await installArgoCd();
 
   process.env.K8S_LOCAL = '1';
   process.env.K8S_LOCAL_REPO_URL = REPO_URL;
-  applyBootstrapApplicationSet();
+  await applyBootstrapApplicationSet();
 
   await sync();
 }
 
 async function sync(): Promise<void> {
-  if (!currentContext()) {
-    console.error('✗ kubectl is not configured');
-    process.exit(1);
-  }
-  assertLocalContext();
+  await assertLocalContext();
 
-  if (isDirty()) {
+  if (await isDirty()) {
     console.warn('⚠ the working tree is dirty. ArgoCD will render the last commit on');
     console.warn(`  ${BRANCH}, not your uncommitted changes.`);
     if (!(await confirm('Continue anyway?'))) process.exit(1);
   }
 
-  advanceBranch();
+  await advanceBranch();
 
   // Force the ApplicationSet controller to re-read the moved branch. The
   // `apps` ApplicationSet is self-managed, so syncing its Application updates
   // the generator; the child Applications follow.
-  if (have('argocd')) {
-    sh('argocd', ['app', 'get', 'application-set', '--refresh']);
-    sh('argocd', ['app', 'sync', 'application-set', '--prune']);
+  if (await have('argocd')) {
+    await $`argocd app get application-set --refresh`.nothrow();
+    await $`argocd app sync application-set --prune`.nothrow();
   } else {
-    sh('kubectl', ['-n', 'argocd', 'annotate', 'applicationset/apps', 'argocd.argoproj.io/refresh=hard', '--overwrite'], { quiet: true });
-    sh('kubectl', ['-n', 'argocd', 'rollout', 'restart', 'deployment/argocd-applicationset-controller'], { quiet: true });
+    await $`kubectl -n argocd annotate applicationset/apps argocd.argoproj.io/refresh=hard --overwrite`.quiet().nothrow();
+    await $`kubectl -n argocd rollout restart deployment/argocd-applicationset-controller`.quiet().nothrow();
   }
 
   console.log(`
@@ -285,18 +280,18 @@ Local cluster ready.
 ──────────────────────────────────────────────`);
 }
 
-function down(): void {
+async function down(): Promise<void> {
   stopDaemon();
-  if (k3dClusterExists()) {
-    must('k3d', ['cluster', 'delete', CLUSTER]);
+  if (await k3dClusterExists()) {
+    await check($`k3d cluster delete ${CLUSTER}`);
   } else {
     console.log(`k3d cluster ${CLUSTER} not found`);
   }
 }
 
-const commands: Record<string, () => void | Promise<void>> = { up, sync, down };
+const commands = { up, sync, down } as const;
 if (!command || !(command in commands)) {
   console.error('usage: bun run local-cluster:{up,sync,down} [--yes]');
   process.exit(1);
 }
-await commands[command]();
+await commands[command as keyof typeof commands]();
