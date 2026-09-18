@@ -1,10 +1,10 @@
 #!/usr/bin/env bun
 /**
- * Worker: import a single spec. Spawned in parallel by scripts/import.ts so
+ * Worker: import a single spec. Spawned in parallel by .dev/cdk8s-import.ts so
  * that each import's download + codegen runs on its own process (real
  * multi-core parallelism; in-process Promise.all serializes sync codegen).
  *
- * Usage: bun scripts/import-one.ts <spec> <outdir>
+ * Usage: bun .dev/cdk8s-import-one.ts <spec> <outdir>
  */
 import { createRequire } from 'node:module';
 import { patchCdk8sDownload } from './lib/fetch-download';

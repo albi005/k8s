@@ -1,6 +1,7 @@
 import { Construct } from 'constructs';
 import { App, Chart } from 'cdk8s';
 import { KubeDeployment, KubeService, Quantity } from '../imports/k8s';
+import { versions } from './versions.ts';
 
 /**
  * A trivial cdk8s app that renders a Deployment + Service, proving that
@@ -24,7 +25,7 @@ class DemoChart extends Chart {
             containers: [
               {
                 name: 'demo',
-                image: 'nginx:1.27.4',
+                image: versions.image,
                 ports: [{ containerPort: 80 }],
                 resources: {
                   requests: {
@@ -57,4 +58,4 @@ class DemoChart extends Chart {
 const app = new App();
 new DemoChart(app, 'demo');
 
-app.synth();
+export default app;

@@ -1,16 +1,19 @@
 {
   "private": true,
   "scripts": {
-    "import": "bun scripts/import.ts",
-    "postinstall": "npm run import",
-    "synth": "cdk8s synth"
+    "cdk8s:import": "bun .dev/cdk8s-import.ts",
+    "cdk8s:synth": "bun .dev/cdk8s-synth.ts",
+    "local-cluster:up": "bun .dev/local-cluster.ts up",
+    "local-cluster:sync": "bun .dev/local-cluster.ts sync",
+    "local-cluster:down": "bun .dev/local-cluster.ts down",
+    "renovate": "bun .dev/renovate.ts"
   },
   "dependencies": {
-    "cdk8s": "^2.70.93",
-    "cdk8s-plus-33": "^2.5.49",
-    "constructs": "^10.8.1"
+    "cdk8s": "2.70.93",
+    "constructs": "10.8.1",
+    "yaml": "2.9.0"
   },
   "devDependencies": {
-    "cdk8s-cli": "^2.207.53"
+    "cdk8s-cli": "2.207.53"
   }
 }

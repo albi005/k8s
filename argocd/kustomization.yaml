@@ -39,21 +39,27 @@ helmCharts:
                 args:
                   - |
                     set -e
-                    app_dir="$(pwd)"
+                    app_name="$(basename "$(pwd)")"
                     root_dir="$(cd .. && pwd)"
-                    out_dir="$root_dir/dist/$(basename "$app_dir")"
+                    out_dir="$root_dir/dist/$app_name"
                     cd "$root_dir"
+
+                    # Cache bun's downloads and the generated cdk8s imports on the
+                    # cmp-cache volume so repeat syncs skip both (see PLAN.md).
+                    export BUN_INSTALL_CACHE_DIR=/cache/bun
+                    export CDK8S_IMPORT_CACHE=/cache/cdk8s-imports
+
                     # copyfile backend -> real node_modules (no symlinks into bun's
                     # global cache, which breaks module resolution from nested dirs)
                     if [ -f bun.lock ]; then bun install --frozen-lockfile --backend=copyfile >&2; else bun install --backend=copyfile >&2; fi
-                    bun run import >&2
+                    bun run cdk8s:import >&2
                     # materialize the imports symlink (import script caches via symlink)
                     if [ -L imports ]; then
                       target="$(readlink imports)"
                       rm imports
                       cp -rL "$target" imports
                     fi
-                    ./node_modules/.bin/cdk8s synth --app "bun $app_dir/app.ts" --output "$out_dir" >&2
+                    bun .dev/cdk8s-synth.ts "$app_name" --output "$out_dir" >&2
                     cat "$out_dir"/*.k8s.yaml
 
       global:
@@ -171,12 +177,17 @@ helmCharts:
               # Do not share the repo-server's /tmp volume (path traversal mitigation).
               - mountPath: /tmp
                 name: cmp-tmp
+              # Persistent-ish cache for `bun install` + `cdk8s:import`.
+              - mountPath: /cache
+                name: cmp-cache
 
         volumes:
           - name: argocd-cmp-cm
             configMap:
               name: argocd-cmp-cm
           - name: cmp-tmp
+            emptyDir: {}
+          - name: cmp-cache
             emptyDir: {}
 
         resources:

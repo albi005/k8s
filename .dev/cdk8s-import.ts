@@ -6,7 +6,11 @@
  * parallelism) and patches cdk8s-cli's buggy download() with `fetch`. An
  * output-level cache makes warm runs (unchanged cdk8s.yaml) O(1).
  *
- * Usage: bun scripts/import.ts [outdir]
+ * The cache lives in CDK8S_IMPORT_CACHE (default ~/.cache/cdk8s-imports). The
+ * ArgoCD CMP points it at a persistent volume so `cdk8s:import` is a no-op
+ * across syncs as long as cdk8s.yaml is unchanged.
+ *
+ * Usage: bun .dev/cdk8s-import.ts [outdir]
  */
 import { createHash } from 'node:crypto';
 import { readFileSync, existsSync, mkdirSync, rmSync, symlinkSync, cpSync } from 'node:fs';
@@ -33,6 +37,7 @@ if (existsSync(cachedImports)) {
 }
 
 // --- worker pool: one process per import, bounded concurrency ---
+rmSync(OUTDIR, { recursive: true, force: true });
 const started = Date.now();
 const queue = [...imports];
 let running = 0;
@@ -42,7 +47,7 @@ function runWorker(spec: string): Promise<void> {
   return new Promise((resolve) => {
     const child = spawn(
       'bun',
-      ['scripts/import-one.ts', spec, OUTDIR],
+      ['.dev/cdk8s-import-one.ts', spec, OUTDIR],
       { stdio: ['ignore', 'inherit', 'inherit'] },
     );
     child.on('exit', (code) => {

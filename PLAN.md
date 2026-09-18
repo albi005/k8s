@@ -1,91 +1,113 @@
 we are working on a comprehensive GitOps setup.
 
 the current version uses ArgoCD with each ArgoCD Application stored in a top-level directory in the repo,
-as either classic K8s .yaml files or a kustomize.yaml.
+as either classic K8s .yaml files or a kustomization.yaml.
 
-i want to add support for cdk8s-based apps, with automatic update PRs using Renovate.
-additionally i want to be able to deploy a cluster locally for testing.
+we added support for cdk8s-based apps, with automatic update PRs using Renovate,
+and a local cluster that can be brought up/down with bun scripts.
 
 ## todo
 
 - [x] keep the same top-level setup and add support for cdk8s apps using a `app.ts` file as the entry-point
       (done via an ArgoCD Config Management Plugin sidecar, see `argocd/kustomization.yaml`; sample in `demo/`)
-- [ ] the current setup uses some Renovate magic to open PRs from other repositories from GitHub Actions.
-  see kir-dev/k8s and kir-dev/StartSCH (both already in ~/src).
-  create a script that can be run from the CI/CD pipelines of other repositories that opens an update PR for that specific app.
+- [x] local cluster lifecycle as bun scripts (`.dev/local-cluster.ts`, replacing the manual README steps)
+- [x] Renovate helper: an app's CI opens an update PR for `<app>/versions.ts` against kir-dev/k8s
 
 ## rules
 - top-level directories other than the ones starting with a `.` are ArgoCD Applications.
-  keep non-Application files either in a dir like `.cdk8s` (or something else) or at the top-level.
+  keep non-Application files in a dir starting with a `.` (like `.dev`) or at the top-level.
 - use bun. don't add dependencies unless necessary.
+- pin everything (nix-style): package.json deps, Renovate, cdk8s.yaml imports, GitHub Actions.
 
-## notes
+## layout
 
-- https://hub.docker.com/r/nixos/nix
-  - https://discourse.nixos.org/t/how-to-use-nix-only-in-docker-for-a-project/18043/2
-- https://docs.renovatebot.com/getting-started/running/#using-typescript-config-files
-- https://docs.renovatebot.com/modules/manager/nix/
-- Gum-like prompts in JS: https://www.npmjs.com/package/@clack/prompts
-- https://nixery.dev/
-- https://argo-cd.readthedocs.io/en/stable/user-guide/commands/argocd_app_sync/
-- env vars when rendering an argocd Application (like ARGOCD_APP_NAME):
-  https://argo-cd.readthedocs.io/en/stable/user-guide/build-environment/
-- https://cdk8s.io/docs/latest/cli/import/
-- ```ts
-  const module = await import(path.resolve(import.meta.dir, `../${filename}.ts`))
-  module.default
-  module.myFunc()
-  ```
+```
+<repo root>/
+  cdk8s.yaml          # shared imports for all cdk8s apps
+  package.json        # shared deps + bun scripts
+  imports/            # generated cdk8s .ts (gitignored, cached)
+  .dev/               # all tooling (not an ArgoCD Application)
+    cdk8s-import.ts     # parallel, cached `cdk8s import`
+    cdk8s-synth.ts      # render one APP_NAME/app.ts
+    is-local.ts         # isLocal() / sourceRepoUrl() / sourceRevision()
+    local-cluster.ts    # local-cluster:up / sync / down
+    renovate.ts         # `bun run renovate APP_NAME` wrapper
+    renovate-config.ts  # appConfig() helper imported by each app's renovate.ts
+  application-set/
+    app.ts            # the app-of-apps ApplicationSet (renders prod or local)
+  argocd/
+    kustomization.yaml  # ArgoCD itself + the cdk8s CMP sidecar
+  demo/               # sample cdk8s app
+    app.ts
+    versions.ts
+    renovate.ts
+```
 
 ## plan
 
 ```sh
 bun install
 
-# ran by the developer before editing app.ts files and by argocd for each cdk8s Application,
-# ensures that cdk8s generated .ts files exist
+# ensures the cdk8s generated .ts files (imports/) exist.
+# run by developers before editing app.ts files and by the CMP for each app.
+# parallel worker pool, output cached by cdk8s.yaml hash in $CDK8S_IMPORT_CACHE
 bun run cdk8s:import
 
-# renders ./APP_NAME/app.ts.
-# if argocd sees a top-level directory with an app.ts, it creates an argocd
-# Application that gets its resources by running this command.
+# render ./APP_NAME/app.ts. app.ts default-exports a cdk8s App;
+# .dev/cdk8s-synth.ts imports it and calls .synth() into $CDK8S_OUTDIR.
 bun run cdk8s:synth APP_NAME
-  bun run ./.dev/cdk8s-synth.ts
 
-# create a local k8s cluster using k3d, create the vclusters (see README.md),
-# add argocd, add app for local git repo
+# bring up a local k3d cluster + nested vClusters (see README.md), a git daemon
+# serving this working copy, ArgoCD, and the bootstrap ApplicationSet.
 bun run local-cluster:up
   k3d cluster create
-  vcluster create
-  git daemon
-  # create a `argocd-head` branch at HEAD
-  kubectl apply argocd # install argocd with an ApplicationSet pointing at the git daemon's `argocd-head` branch
+  vcluster create vc1, vc2   # vc2's prod-only memory-ssd persistence is stripped
+  git daemon                 # serves this repo; `argocd-head` points at HEAD
+  kubectl apply argocd       # installs ArgoCD (kustomize + helm)
+  K8S_LOCAL=1 bun run cdk8s:synth application-set | kubectl apply -f -
   bun run local-cluster:sync
 
+# publish local changes and let ArgoCD reconcile
 bun run local-cluster:sync
-  # warn the user if the repo is dirty and ask them whether to continue
-  # move the `argocd-head` git branch to HEAD
-  argocd sync # the main ApplicationSet's Application which hopefully also updates the child Applications
+  # warns if the repo is dirty (ArgoCD only sees committed work)
+  # moves `argocd-head` to HEAD
+  # refreshes the `apps` ApplicationSet (restarts the controller if no argocd CLI)
 bun run local-cluster:down
-  k3d delete
+  git daemon stop
+  k3d cluster delete
 
 # App-specific GitHub Actions, runs in the app's repo
 git clone https://github.com/kir-dev/k8s --depth 1
 cd k8s
 bun install
 bun run renovate APP_NAME
-  bun ./.dev/renovate.ts
-    RENOVATE_CONFIG_FILE=./APP_NAME/renovate.ts renovate
+  bun .dev/renovate.ts
+    RENOVATE_CONFIG_FILE=./APP_NAME/renovate.ts bunx renovate@<pinned>
 ```
 
-cdk8s apps have the following files:
+## prod vs local
+
+`application-set/app.ts` is the single source of the ApplicationSet. It calls
+`isLocal()` (`.dev/is-local.ts`):
+
+- `K8S_LOCAL` env var, if set, wins.
+- otherwise `isLocal()` is true when the checkout's `git remote get-url origin`
+  is a `git://` URL — i.e. the local ArgoCD clone from the git daemon. prod's
+  origin is `https://github.com/kir-dev/k8s`.
+
+`sourceRepoUrl()`/`sourceRevision()` therefore render kir-dev/k8s `HEAD` in prod
+and `git://<host>:<port>/<repo>` `argocd-head` locally. `local-cluster:up` sets
+`K8S_LOCAL=1 K8S_LOCAL_REPO_URL=...` for the one-time bootstrap synth.
+
+## cdk8s apps have the following files
+
 - `versions.ts`:
   ```ts
   export const versions = {
-    image: "https://ghcr.io/kir-dev/...:...@sha256:...",
+    image: 'ghcr.io/kir-dev/example:v1.2.3@sha256:...',
   };
   ```
-- `app.ts`: returns a cdk8s app:
+- `app.ts`: default-exports a cdk8s app:
   ```ts
   import { Construct } from 'constructs';
   import { App, Chart, ChartProps } from 'cdk8s';
@@ -93,16 +115,32 @@ cdk8s apps have the following files:
   export class MyChart extends Chart {
     constructor(scope: Construct, id: string, props: ChartProps = { }) {
       super(scope, id, props);
-      new KubeDeployment(this, 'my-deployment', {...});
-      ...
+      new KubeDeployment(this, 'my-deployment', { ... });
     }
   }
   const app = new App();
   new MyChart(app, 'typescript');
   export default app;
   ```
-- `renovate.ts`: Renovate config updating versions.ts for the app
+- `renovate.ts`: Renovate config updating `versions.ts` for the app
   ```ts
-  import type { AllConfig } from 'renovate/dist/config/types';
-  export default {...} as AllConfig;
+  import { appConfig } from '../.dev/renovate-config.ts';
+  export default appConfig('APP_NAME');
   ```
+
+Renovate runs with the Node runtime (bunx's default); `--bun` crashes on
+Renovate's native `re2` addon. `appConfig()` scopes a `custom.regex` manager to
+`<app>/versions.ts`, uses the `docker` datasource + `versioning: docker` and
+`pinDigests`, and is the app's Renovate *global* config (token comes from the
+app repo's `RENOVATE_TOKEN` secret).
+
+## notes
+
+- ArgoCD CMP caches `bun install` (`BUN_INSTALL_CACHE_DIR`) and `cdk8s:import`
+  (`CDK8S_IMPORT_CACHE`) on the `cmp-cache` volume; an `emptyDir` for now.
+- https://hub.docker.com/r/nixos/nix
+- https://docs.renovatebot.com/getting-started/running/#using-typescript-config-files
+- https://argo-cd.readthedocs.io/en/stable/user-guide/config-management-plugins/
+- env vars when rendering an argocd Application (like ARGOCD_APP_NAME):
+  https://argo-cd.readthedocs.io/en/stable/user-guide/build-environment/
+- https://cdk8s.io/docs/latest/cli/import/
