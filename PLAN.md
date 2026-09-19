@@ -59,10 +59,10 @@ bun run cdk8s:import
 # .dev/cdk8s-synth.ts imports it and calls .synth() into $CDK8S_OUTDIR.
 bun run cdk8s:synth APP_NAME
 
-# bring up a local k3d cluster + nested vClusters (see README.md), an in-cluster
+# bring up a local minikube cluster + nested vClusters (see README.md), an in-cluster
 # git server, ArgoCD, and the bootstrap ApplicationSet.
 bun run local-cluster:up
-  k3d cluster create
+  minikube start -p mycluster --cache-images=true
   vcluster create vc1, vc2   # vc2's prod-only memory-ssd persistence is stripped
   kubectl apply argocd       # installs ArgoCD (kustomize + helm)
   kubectl apply .dev/git-server.yaml   # bare repo + git daemon in vc2
@@ -76,7 +76,7 @@ bun run local-cluster:sync
   # pushes HEAD to the in-cluster git server as `argocd-head` (port-forward)
   # refreshes the `apps` ApplicationSet (restarts the controller if no argocd CLI)
 bun run local-cluster:down
-  k3d cluster delete
+  minikube delete -p mycluster   # no --purge: image cache in ~/.minikube/cache/images is kept
 
 # App-specific GitHub Actions, runs in the app's repo
 git clone https://github.com/kir-dev/k8s --depth 1

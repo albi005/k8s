@@ -6,15 +6,16 @@ TODO: Update README TODO: is the resource request/limit bug not mentioned anywhe
 
 Install
 [kubectl](https://kubernetes.io/docs/tasks/tools/#kubectl),
-[k3d](https://k3d.io), and the [vCluster CLI](https://www.vcluster.com/install)
-(`nix-shell -p kubectl k3d vcluster` if you have Nix), plus
+[minikube](https://minikube.sigs.k8s.io/docs/start/), and the
+[vCluster CLI](https://www.vcluster.com/install)
+(`nix-shell -p kubectl minikube vcluster` if you have Nix), plus
 [bun](https://bun.sh) and `helm`, then:
 
 ```bash
 git clone https://github.com/kir-dev/k8s
 cd k8s
 
-# create the k3d cluster + nested vClusters, an in-cluster git server,
+# create the minikube profile + nested vClusters, an in-cluster git server,
 # install ArgoCD and the bootstrap ApplicationSet
 bun install
 bun run local-cluster:up
@@ -22,12 +23,13 @@ bun run local-cluster:up
 # after committing changes, publish them and let ArgoCD reconcile
 bun run local-cluster:sync
 
-# tear everything down
+# tear everything down (the minikube image cache is kept)
 bun run local-cluster:down
 ```
 
-`local-cluster:up` is idempotent for the cluster/vClusters and reproduces the manual steps that used to be documented
-here (see `PLAN.md` for the full flow).
+`local-cluster:up` is idempotent for the profile/vClusters and reproduces the manual steps that used to be documented
+here (see `PLAN.md` for the full flow). `minikube start --cache-images=true` (and `minikube delete` without `--purge`)
+keeps downloaded images in `~/.minikube/cache/images`, so recreating the cluster reuses them.
 
 ## Adding a new app
 

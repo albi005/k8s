@@ -1,9 +1,14 @@
 /**
  * Local test cluster lifecycle (PLAN.md).
  *
- *   bun run local-cluster:up     k3d + nested vClusters + ArgoCD + git server + ApplicationSet
+ *   bun run local-cluster:up     minikube + nested vClusters + ArgoCD + git server + ApplicationSet
  *   bun run local-cluster:sync   push HEAD to the in-cluster git server and reconcile
- *   bun run local-cluster:down   delete the k3d cluster
+ *   bun run local-cluster:down   delete the minikube profile (its image cache is kept)
+ *
+ * Image caching: `minikube start --cache-images=true` stores downloaded images
+ * under ~/.minikube/cache/images and loads them on the next start. `down` runs
+ * plain `minikube delete` (never `--purge`), so recreating the cluster reuses
+ * that cache instead of re-downloading everything.
  *
  * ArgoCD runs in the innermost vCluster (vc2), so a git daemon on the host
  * isn't reachable from it (nested DNS + host firewall). Instead an in-cluster
@@ -19,7 +24,7 @@ import { createInterface } from "node:readline/promises";
 
 const ROOT = resolve(import.meta.dir, "..");
 const CLUSTER = process.env.LOCAL_CLUSTER_NAME ?? "mycluster";
-const K3S_IMAGE = process.env.LOCAL_K3S_IMAGE ?? "rancher/k3s:v1.35.0-k3s1";
+const K8S_VERSION = process.env.LOCAL_K8S_VERSION ?? "v1.35.0";
 const BRANCH = "argocd-head";
 const GIT_NAMESPACE = "argocd";
 const GIT_SERVICE = "git-server";
@@ -80,12 +85,12 @@ async function confirm(question: string): Promise<boolean> {
 
 // --- cluster --------------------------------------------------------------
 
-async function k3dClusterExists(): Promise<boolean> {
-    const r = await $`k3d cluster list -o json`.quiet().nothrow();
+async function minikubeProfileExists(): Promise<boolean> {
+    const r = await $`minikube profile list -o json`.quiet().nothrow();
     if (r.exitCode !== 0) return false;
     try {
-        const clusters = JSON.parse(await r.text()) as { name: string }[];
-        return clusters.some((c) => c.name === CLUSTER);
+        const data = JSON.parse(await r.text()) as { valid?: { Name: string }[]; invalid?: { Name: string }[] };
+        return [...(data.valid ?? []), ...(data.invalid ?? [])].some((p) => p.Name === CLUSTER);
     } catch {
         return false;
     }
@@ -200,7 +205,7 @@ async function applyBootstrapApplicationSet(): Promise<void> {
 // --- commands -------------------------------------------------------------
 
 async function up(): Promise<void> {
-    for (const bin of ["k3d", "vcluster", "kubectl", "helm", "git", "bun"]) {
+    for (const bin of ["minikube", "vcluster", "kubectl", "helm", "git", "bun"]) {
         if (!(await have(bin))) {
             console.error(`✗ missing required tool: ${bin}`);
             process.exit(1);
@@ -215,16 +220,21 @@ async function up(): Promise<void> {
     if (!existsSync(join(ROOT, "node_modules"))) await check($`bun install`.cwd(ROOT));
     await check($`bun run cdk8s:import`.cwd(ROOT));
 
-    if (!(await k3dClusterExists())) {
-        await check($`k3d cluster create ${CLUSTER} --image ${K3S_IMAGE}`);
-    } else {
-        console.log(`✓ k3d cluster ${CLUSTER} exists`);
-    }
+    // `minikube start` is idempotent (no-op if already running) and
+    // `--cache-images` keeps downloaded images in ~/.minikube/cache/images.
+    const exists = await minikubeProfileExists();
+    const startArgs = ["start", "-p", CLUSTER, "--cache-images=true"];
+    if (!exists) startArgs.push(`--kubernetes-version=${K8S_VERSION}`);
+    if (!exists && process.env.LOCAL_MINIKUBE_DRIVER) startArgs.push(`--driver=${process.env.LOCAL_MINIKUBE_DRIVER}`);
+    if (!exists && process.env.LOCAL_MINIKUBE_CPUS) startArgs.push(`--cpus=${process.env.LOCAL_MINIKUBE_CPUS}`);
+    if (!exists && process.env.LOCAL_MINIKUBE_MEMORY) startArgs.push(`--memory=${process.env.LOCAL_MINIKUBE_MEMORY}`);
+    console.log(exists ? `✓ minikube profile ${CLUSTER} exists` : `→ creating minikube profile ${CLUSTER}`);
+    await check($`minikube ${startArgs}`);
 
-    // vc1 is created on the k3d cluster, vc2 nested inside vc1. On a re-run the
-    // existing vCluster must be re-connected so the next one lands in the right
-    // parent.
-    await check($`kubectl config use-context k3d-${CLUSTER}`);
+    // vc1 is created on the minikube cluster, vc2 nested inside vc1. On a re-run
+    // the existing vCluster must be re-connected so the next one lands in the
+    // right parent.
+    await check($`kubectl config use-context ${CLUSTER}`);
     await ensureVcluster(VCLUSTERS[0]);
     await ensureVcluster(VCLUSTERS[1]);
 
@@ -279,10 +289,12 @@ Local cluster ready.
 }
 
 async function down(): Promise<void> {
-    if (await k3dClusterExists()) {
-        await check($`k3d cluster delete ${CLUSTER}`);
+    if (await minikubeProfileExists()) {
+        // No --purge: ~/.minikube/cache/images survives for the next `up`.
+        await check($`minikube delete -p ${CLUSTER}`);
+        console.log("✓ deleted minikube profile (image cache kept in ~/.minikube/cache/images)");
     } else {
-        console.log(`k3d cluster ${CLUSTER} not found`);
+        console.log(`minikube profile ${CLUSTER} not found`);
     }
 }
 
