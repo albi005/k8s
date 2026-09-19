@@ -93,7 +93,7 @@ minio:
   persistence:
     storageClass: memory-hdd
 gateway:
-  affinity: {} # allow scheduling 2 gateways on the same node, needed when updating
+  affinity: { } # allow scheduling 2 gateways on the same node, needed when updating
   resources:
     requests:
       cpu: 100m

@@ -1,10 +1,10 @@
-import type { AllConfig } from 'renovate/dist/config/types';
+import type { AllConfig } from "renovate/dist/config/types";
 
 export interface RenovateAppOptions {
-  /** Repository that holds the ArgoCD Applications. */
-  repository?: string;
-  /** Bot identity used for commits/PRs. */
-  gitAuthor?: string;
+    /** Repository that holds the ArgoCD Applications. */
+    repository?: string;
+    /** Bot identity used for commits/PRs. */
+    gitAuthor?: string;
 }
 
 /**
@@ -19,39 +19,39 @@ export interface RenovateAppOptions {
  * `docker` datasource + `pinDigests` keeps both the tag and the digest current.
  */
 export function appConfig(app: string, options: RenovateAppOptions = {}): AllConfig {
-  const repository = options.repository ?? 'kir-dev/k8s';
-  const gitAuthor = options.gitAuthor ?? 'Kir-Dev Bot <258595904+kir-dev-bot@users.noreply.github.com>';
+    const repository = options.repository ?? "kir-dev/k8s";
+    const gitAuthor = options.gitAuthor ?? "Kir-Dev Bot <258595904+kir-dev-bot@users.noreply.github.com>";
 
-  return {
-    platform: 'github',
-    onboarding: false,
-    requireConfig: 'optional',
-    gitAuthor,
-    // token is provided by the app repository's CI secrets (RENOVATE_TOKEN)
-    token: process.env.RENOVATE_TOKEN,
-    repositories: [
-      {
-        repository,
-        enabledManagers: ['custom.regex'],
-        customManagers: [
-          {
-            customType: 'regex',
-            managerFilePatterns: [`/^${app}\\/versions\\.ts$/`],
-            matchStrings: [
-              `['"](?<depName>[^@'"\\s]+):(?<currentValue>[^@'"\\s]+)(?:@(?<currentDigest>sha256:[a-f0-9]{64}))?['"]`,
-            ],
-            datasourceTemplate: 'docker',
-            versioningTemplate: 'docker',
-          },
+    return {
+        platform: "github",
+        onboarding: false,
+        requireConfig: "optional",
+        gitAuthor,
+        // token is provided by the app repository's CI secrets (RENOVATE_TOKEN)
+        token: process.env.RENOVATE_TOKEN,
+        repositories: [
+            {
+                repository,
+                enabledManagers: ["custom.regex"],
+                customManagers: [
+                    {
+                        customType: "regex",
+                        managerFilePatterns: [`/^${app}\\/versions\\.ts$/`],
+                        matchStrings: [
+                            `['"](?<depName>[^@'"\\s]+):(?<currentValue>[^@'"\\s]+)(?:@(?<currentDigest>sha256:[a-f0-9]{64}))?['"]`,
+                        ],
+                        datasourceTemplate: "docker",
+                        versioningTemplate: "docker",
+                    },
+                ],
+                packageRules: [
+                    {
+                        matchManagers: ["custom.regex"],
+                        groupName: `${app} images`,
+                        pinDigests: true,
+                    },
+                ],
+            },
         ],
-        packageRules: [
-          {
-            matchManagers: ['custom.regex'],
-            groupName: `${app} images`,
-            pinDigests: true,
-          },
-        ],
-      },
-    ],
-  };
+    };
 }

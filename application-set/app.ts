@@ -1,7 +1,7 @@
-import {Construct} from 'constructs';
-import {App, Chart} from 'cdk8s';
-import {ApplicationSet} from '../imports/argoproj.io';
-import {sourceRepoUrl, sourceRevision} from '../.dev/is-local.ts';
+import { Construct } from "constructs";
+import { App, Chart } from "cdk8s";
+import { ApplicationSet } from "../imports/argoproj.io";
+import { sourceRepoUrl, sourceRevision } from "../.dev/is-local.ts";
 
 /**
  * The app-of-apps ApplicationSet.
@@ -19,41 +19,39 @@ class AppSetChart extends Chart {
     constructor(scope: Construct, id: string, repoUrl: string, revision: string) {
         super(scope, id);
 
-        new ApplicationSet(this, 'apps', {
+        new ApplicationSet(this, "apps", {
             metadata: {
-                name: 'apps', namespace: 'argocd'
+                name: "apps",
+                namespace: "argocd",
             },
             spec: {
                 goTemplate: true,
-                goTemplateOptions: ['missingkey=error'],
+                goTemplateOptions: ["missingkey=error"],
                 generators: [
                     {
                         git: {
                             repoUrl,
                             revision,
-                            directories: [
-                                {path: '*'},
-                                {path: '.*', exclude: true},
-                            ],
+                            directories: [{ path: "*" }, { path: ".*", exclude: true }],
                         },
                     },
                 ],
                 template: {
                     metadata: {
-                        name: '{{.path.basename}}',
-                        finalizers: ['resources-finalizer.argocd.argoproj.io'],
+                        name: "{{.path.basename}}",
+                        finalizers: ["resources-finalizer.argocd.argoproj.io"],
                     },
                     spec: {
-                        project: 'default',
+                        project: "default",
                         source: {
                             repoUrl,
                             targetRevision: revision,
-                            path: '{{.path.path}}',
+                            path: "{{.path.path}}",
                         },
-                        destination: {name: 'in-cluster'},
+                        destination: { name: "in-cluster" },
                         syncPolicy: {
-                            automated: {prune: true, selfHeal: true},
-                            syncOptions: ['ServerSideApply=true', 'CreateNamespace=true'],
+                            automated: { prune: true, selfHeal: true },
+                            syncOptions: ["ServerSideApply=true", "CreateNamespace=true"],
                         },
                     },
                 },
@@ -63,6 +61,6 @@ class AppSetChart extends Chart {
 }
 
 const app = new App();
-new AppSetChart(app, 'application-set', await sourceRepoUrl(), await sourceRevision());
+new AppSetChart(app, "application-set", await sourceRepoUrl(), await sourceRevision());
 
 export default app;

@@ -1,4 +1,3 @@
-
 # https://github.com/kir-dev/StartSCH
 #
 # https://start.sch.bme.hu
@@ -155,10 +154,10 @@ spec:
         barmanObjectName: startsch-backups
 
   # Create a new database
-#  bootstrap:
-#    initdb:
-#      database: startsch
-#      owner: startsch
+  #  bootstrap:
+  #    initdb:
+  #      database: startsch
+  #      owner: startsch
 
   # Restore from a backup (leave after restoring finished)
   bootstrap:

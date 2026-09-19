@@ -1,3 +1,3 @@
 export const versions = {
-  image: 'nginx:1.27.4',
+    image: "nginx:1.27.4",
 };

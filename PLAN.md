@@ -1,21 +1,22 @@
 we are working on a comprehensive GitOps setup.
 
-the current version uses ArgoCD with each ArgoCD Application stored in a top-level directory in the repo,
-as either classic K8s .yaml files or a kustomization.yaml.
+the current version uses ArgoCD with each ArgoCD Application stored in a top-level directory in the repo, as either
+classic K8s .yaml files or a kustomization.yaml.
 
-we added support for cdk8s-based apps, with automatic update PRs using Renovate,
-and a local cluster that can be brought up/down with bun scripts.
+we added support for cdk8s-based apps, with automatic update PRs using Renovate, and a local cluster that can be brought
+up/down with bun scripts.
 
 ## todo
 
-- [x] keep the same top-level setup and add support for cdk8s apps using a `app.ts` file as the entry-point
-      (done via an ArgoCD Config Management Plugin sidecar, see `argocd/kustomization.yaml`; sample in `demo/`)
+- [x] keep the same top-level setup and add support for cdk8s apps using a `app.ts` file as the entry-point (done via an
+  ArgoCD Config Management Plugin sidecar, see `argocd/kustomization.yaml`; sample in `demo/`)
 - [x] local cluster lifecycle as bun scripts (`.dev/local-cluster.ts`, replacing the manual README steps)
 - [x] Renovate helper: an app's CI opens an update PR for `<app>/versions.ts` against kir-dev/k8s
 
 ## rules
-- top-level directories other than the ones starting with a `.` are ArgoCD Applications.
-  keep non-Application files in a dir starting with a `.` (like `.dev`) or at the top-level.
+
+- top-level directories other than the ones starting with a `.` are ArgoCD Applications. keep non-Application files in a
+  dir starting with a `.` (like `.dev`) or at the top-level.
 - use bun. don't add dependencies unless necessary.
 - pin everything (nix-style): package.json deps, Renovate, cdk8s.yaml imports, GitHub Actions.
 
@@ -93,11 +94,11 @@ bun run renovate APP_NAME
 
 - `K8S_LOCAL` env var, if set, wins.
 - otherwise `isLocal()` is true when the checkout's `git remote get-url origin`
-  is a `git://` URL — i.e. the local ArgoCD clone from the git daemon. prod's
-  origin is `https://github.com/kir-dev/k8s`.
+  is a `git://` URL — i.e. the local ArgoCD clone from the git daemon. prod's origin is
+  `https://github.com/kir-dev/k8s`.
 
-`sourceRepoUrl()`/`sourceRevision()` therefore render kir-dev/k8s `HEAD` in prod
-and the in-cluster `git://git-server.argocd.svc.cluster.local:9418/k8s.git`
+`sourceRepoUrl()`/`sourceRevision()` therefore render kir-dev/k8s `HEAD` in prod and the in-cluster
+`git://git-server.argocd.svc.cluster.local:9418/k8s.git`
 `argocd-head` locally. `local-cluster:up` sets
 `K8S_LOCAL=1 K8S_LOCAL_REPO_URL=...` for the one-time bootstrap synth.
 
@@ -130,11 +131,10 @@ and the in-cluster `git://git-server.argocd.svc.cluster.local:9418/k8s.git`
   export default appConfig('APP_NAME');
   ```
 
-Renovate runs with the Node runtime (bunx's default); `--bun` crashes on
-Renovate's native `re2` addon. `appConfig()` scopes a `custom.regex` manager to
+Renovate runs with the Node runtime (bunx's default); `--bun` crashes on Renovate's native `re2` addon. `appConfig()`
+scopes a `custom.regex` manager to
 `<app>/versions.ts`, uses the `docker` datasource + `versioning: docker` and
-`pinDigests`, and is the app's Renovate *global* config (token comes from the
-app repo's `RENOVATE_TOKEN` secret).
+`pinDigests`, and is the app's Renovate *global* config (token comes from the app repo's `RENOVATE_TOKEN` secret).
 
 ## notes
 

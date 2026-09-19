@@ -28,7 +28,7 @@ spec:
       containers:
         - name: git
           image: nixery.dev/shell/git
-          command: [bash, -c]
+          command: [ bash, -c ]
           args:
             - |
               set -e
@@ -58,4 +58,4 @@ spec:
               mountPath: /srv
       volumes:
         - name: repos
-          emptyDir: {}
+          emptyDir: { }

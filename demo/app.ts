@@ -1,7 +1,7 @@
-import { Construct } from 'constructs';
-import { App, Chart } from 'cdk8s';
-import { IntOrString, KubeDeployment, KubeNamespace, KubeService, Quantity } from '../imports/k8s';
-import { versions } from './versions.ts';
+import { Construct } from "constructs";
+import { App, Chart } from "cdk8s";
+import { IntOrString, KubeDeployment, KubeNamespace, KubeService, Quantity } from "../imports/k8s";
+import { versions } from "./versions.ts";
 
 /**
  * A trivial cdk8s app that renders a Deployment + Service, proving that
@@ -9,56 +9,56 @@ import { versions } from './versions.ts';
  * Config Management Plugin.
  */
 class DemoChart extends Chart {
-  constructor(scope: Construct, ns: string) {
-    super(scope, ns);
+    constructor(scope: Construct, ns: string) {
+        super(scope, ns);
 
-    new KubeNamespace(this, 'demo-namespace', { metadata: { name: 'demo' } });
+        new KubeNamespace(this, "demo-namespace", { metadata: { name: "demo" } });
 
-    const labels = { app: 'demo' };
-    const metadata = { name: 'demo', namespace: 'demo', labels };
+        const labels = { app: "demo" };
+        const metadata = { name: "demo", namespace: "demo", labels };
 
-    new KubeDeployment(this, 'demo-deployment', {
-      metadata,
-      spec: {
-        replicas: 2,
-        selector: { matchLabels: labels },
-        template: {
-          metadata: { labels },
-          spec: {
-            containers: [
-              {
-                name: 'demo',
-                image: versions.image,
-                ports: [{ containerPort: 80 }],
-                resources: {
-                  requests: {
-                    cpu: Quantity.fromString('10m'),
-                    memory: Quantity.fromString('32Mi'),
-                  },
-                  limits: {
-                    cpu: Quantity.fromString('100m'),
-                    memory: Quantity.fromString('128Mi'),
-                    'ephemeral-storage': Quantity.fromString('50Mi'),
-                  },
+        new KubeDeployment(this, "demo-deployment", {
+            metadata,
+            spec: {
+                replicas: 2,
+                selector: { matchLabels: labels },
+                template: {
+                    metadata: { labels },
+                    spec: {
+                        containers: [
+                            {
+                                name: "demo",
+                                image: versions.image,
+                                ports: [{ containerPort: 80 }],
+                                resources: {
+                                    requests: {
+                                        cpu: Quantity.fromString("10m"),
+                                        memory: Quantity.fromString("32Mi"),
+                                    },
+                                    limits: {
+                                        cpu: Quantity.fromString("100m"),
+                                        memory: Quantity.fromString("128Mi"),
+                                        "ephemeral-storage": Quantity.fromString("50Mi"),
+                                    },
+                                },
+                            },
+                        ],
+                    },
                 },
-              },
-            ],
-          },
-        },
-      },
-    });
+            },
+        });
 
-    new KubeService(this, 'demo-service', {
-      metadata,
-      spec: {
-        selector: labels,
-        ports: [{ port: 80, targetPort: IntOrString.fromNumber(80) }],
-      },
-    });
-  }
+        new KubeService(this, "demo-service", {
+            metadata,
+            spec: {
+                selector: labels,
+                ports: [{ port: 80, targetPort: IntOrString.fromNumber(80) }],
+            },
+        });
+    }
 }
 
 const app = new App();
-new DemoChart(app, 'demo');
+new DemoChart(app, "demo");
 
 export default app;

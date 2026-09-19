@@ -11,28 +11,28 @@
  *
  * Usage: bun .dev/cdk8s-import.ts [outdir]
  */
-import { $ } from 'bun';
-import { createHash } from 'node:crypto';
-import { readFileSync, existsSync, mkdirSync, rmSync, symlinkSync, cpSync } from 'node:fs';
-import { join } from 'node:path';
-import { homedir } from 'node:os';
-import { parse as parseYaml } from 'yaml';
+import { $ } from "bun";
+import { createHash } from "node:crypto";
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, symlinkSync } from "node:fs";
+import { join } from "node:path";
+import { homedir } from "node:os";
+import { parse as parseYaml } from "yaml";
 
-const CACHE_DIR = process.env.CDK8S_IMPORT_CACHE ?? join(homedir(), '.cache', 'cdk8s-imports');
+const CACHE_DIR = process.env.CDK8S_IMPORT_CACHE ?? join(homedir(), ".cache", "cdk8s-imports");
 const CONCURRENCY = Number(process.env.CDK8S_IMPORT_PARALLELISM ?? 16);
 
-const config = parseYaml(readFileSync('cdk8s.yaml', 'utf-8')) as { imports?: string[] };
+const config = parseYaml(readFileSync("cdk8s.yaml", "utf-8")) as { imports?: string[] };
 const imports = config.imports ?? [];
-const OUTDIR = process.argv[2] ?? 'imports';
+const OUTDIR = process.argv[2] ?? "imports";
 
 // --- output cache: warm runs just link the previous result ---
-const outputKey = createHash('sha256').update(readFileSync('cdk8s.yaml')).digest('hex');
-const cachedImports = join(CACHE_DIR, 'out', outputKey, 'imports');
+const outputKey = createHash("sha256").update(readFileSync("cdk8s.yaml")).digest("hex");
+const cachedImports = join(CACHE_DIR, "out", outputKey, "imports");
 if (existsSync(cachedImports)) {
-  rmSync(OUTDIR, { recursive: true, force: true });
-  symlinkSync(cachedImports, OUTDIR, 'dir');
-  console.error(`cached (${outputKey.slice(0, 8)}): linked -> ${OUTDIR}`);
-  process.exit(0);
+    rmSync(OUTDIR, { recursive: true, force: true });
+    symlinkSync(cachedImports, OUTDIR, "dir");
+    console.error(`cached (${outputKey.slice(0, 8)}): linked -> ${OUTDIR}`);
+    process.exit(0);
 }
 
 // --- worker pool: one process per import, bounded concurrency ---
@@ -43,26 +43,26 @@ let running = 0;
 let failed = 0;
 
 async function runWorker(spec: string): Promise<void> {
-  const result = await $`bun .dev/cdk8s-import-one.ts ${spec} ${OUTDIR}`.nothrow();
-  if (result.exitCode !== 0) failed++;
+    const result = await $`bun .dev/cdk8s-import-one.ts ${spec} ${OUTDIR}`.nothrow();
+    if (result.exitCode !== 0) failed++;
 }
 
 async function pump(): Promise<void> {
-  while (queue.length > 0 && running < CONCURRENCY) {
-    running++;
-    const spec = queue.shift()!;
-    void runWorker(spec).then(() => {
-      running--;
-      void pump();
-    });
-  }
+    while (queue.length > 0 && running < CONCURRENCY) {
+        running++;
+        const spec = queue.shift()!;
+        void runWorker(spec).then(() => {
+            running--;
+            void pump();
+        });
+    }
 }
 
 await pump();
 
 // wait for any stragglers
 while (running > 0) {
-  await new Promise((r) => setTimeout(r, 100));
+    await new Promise((r) => setTimeout(r, 100));
 }
 
 const wall = ((Date.now() - started) / 1000).toFixed(1);

@@ -1,3 +1,3 @@
-import { appConfig } from '../.dev/renovate-config.ts';
+import { appConfig } from "../.dev/renovate-config.ts";
 
-export default appConfig('demo');
+export default appConfig("demo");

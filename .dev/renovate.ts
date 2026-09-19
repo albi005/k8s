@@ -11,24 +11,24 @@
  * This renders `<APP_NAME>/renovate.ts` (which typically imports
  * `appConfig()` from `.dev/renovate-config.ts`) and hands it to Renovate.
  */
-import { $ } from 'bun';
-import { existsSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { $ } from "bun";
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
 
 // Renovate's native `re2` addon is built against Node's V8 ABI and crashes
 // under bun, so bunx runs it with Node (its bin shebang) rather than `--bun`.
-const RENOVATE_VERSION = '44.103.0';
+const RENOVATE_VERSION = "44.103.0";
 
 const app = process.argv[2];
 if (!app) {
-  console.error('usage: bun run renovate APP_NAME');
-  process.exit(1);
+    console.error("usage: bun run renovate APP_NAME");
+    process.exit(1);
 }
 
-const configFile = resolve(import.meta.dir, '..', app, 'renovate.ts');
+const configFile = resolve(import.meta.dir, "..", app, "renovate.ts");
 if (!existsSync(configFile)) {
-  console.error(`✗ ${configFile} does not exist`);
-  process.exit(1);
+    console.error(`✗ ${configFile} does not exist`);
+    process.exit(1);
 }
 
 process.env.RENOVATE_CONFIG_FILE = configFile;

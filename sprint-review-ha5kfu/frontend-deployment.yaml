@@ -94,6 +94,6 @@ spec:
               mountPath: /tmp
       volumes:
         - name: next-cache
-          emptyDir: {}
+          emptyDir: { }
         - name: tmp
-          emptyDir: {}
+          emptyDir: { }

@@ -35,7 +35,7 @@ helmCharts:
               discover:
                 fileName: "app.ts"
               generate:
-                command: [bash, -c]
+                command: [ bash, -c ]
                 args:
                   - |
                     set -e
@@ -65,7 +65,7 @@ helmCharts:
       global:
         networkPolicy:
           create: true
-      
+
       # resource requests/limits are from https://github.com/argoproj/argo-helm/blob/main/charts/argo-cd/values.yaml
       # nvm they are useless
       controller:
@@ -156,7 +156,7 @@ helmCharts:
         # Provided by nixery: https://nixery.dev/
         extraContainers:
           - name: cmp-cdk8s
-            command: ["/var/run/argocd/argocd-cmp-server"]
+            command: [ "/var/run/argocd/argocd-cmp-server" ]
             image: nixery.dev/shell/bun/kubernetes-helm/nodejs
             imagePullPolicy: IfNotPresent
             env:
@@ -202,9 +202,9 @@ helmCharts:
             configMap:
               name: argocd-cmp-cm
           - name: cmp-tmp
-            emptyDir: {}
+            emptyDir: { }
           - name: cmp-cache
-            emptyDir: {}
+            emptyDir: { }
 
         resources:
           limits:
