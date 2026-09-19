@@ -176,7 +176,7 @@ async function publishHead(): Promise<void> {
     }
 }
 
-// --- argocd ---------------------------------------------------------------
+// --- ArgoCD ---------------------------------------------------------------
 
 async function installArgoCd(): Promise<void> {
     await check($`bash -c ${"kubectl kustomize --enable-helm argocd/ | kubectl apply -f -"}`.cwd(ROOT));

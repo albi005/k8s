@@ -2,6 +2,10 @@ import { Construct } from "constructs";
 import { App, Chart } from "cdk8s";
 import { ApplicationSet } from "../imports/argoproj.io";
 import { sourceRepoUrl, sourceRevision } from "../.dev/is-local.ts";
+import * as tempo from "../imports/tempo.ts";
+import * as argocd from "../imports/argo-cd.ts";
+import * as certmanager from "../imports/cert-manager.ts";
+import * as cnpgHelm from "../imports/cloudnative-pg.ts";
 
 /**
  * The app-of-apps ApplicationSet.
@@ -32,7 +36,17 @@ class AppSetChart extends Chart {
                         git: {
                             repoUrl,
                             revision,
-                            directories: [{ path: "*" }, { path: ".*", exclude: true }],
+                            directories: [
+                                // include all
+                                {
+                                    path: "*",
+                                },
+                                // exclude dirs starting with .
+                                {
+                                    path: ".*",
+                                    exclude: true,
+                                },
+                            ],
                         },
                     },
                 ],
@@ -50,7 +64,10 @@ class AppSetChart extends Chart {
                         },
                         destination: { name: "in-cluster" },
                         syncPolicy: {
-                            automated: { prune: true, selfHeal: true },
+                            automated: {
+                                prune: true,
+                                selfHeal: true,
+                            },
                             syncOptions: ["ServerSideApply=true", "CreateNamespace=true"],
                         },
                     },
