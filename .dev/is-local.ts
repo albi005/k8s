@@ -43,7 +43,7 @@ async function localGitServerReachable(): Promise<boolean> {
 export async function repoUrl(): Promise<string> {
   const result = await $`git -C ${ROOT} remote get-url origin`.quiet().nothrow();
   if (result.exitCode !== 0) return '';
-  return (await result.text()).trim();
+  return (result.text()).trim();
 }
 
 /** Where Application sync from in production. */

@@ -157,7 +157,7 @@ helmCharts:
         extraContainers:
           - name: cmp-cdk8s
             command: ["/var/run/argocd/argocd-cmp-server"]
-            image: nixery.dev/bun/kubernetes-helm/bash/coreutils/cacert/nodejs
+            image: nixery.dev/shell/bun/kubernetes-helm/nodejs
             imagePullPolicy: IfNotPresent
             env:
               # bun needs a writable HOME for its install cache; /tmp is the cmp-tmp emptyDir.

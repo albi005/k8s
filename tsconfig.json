@@ -1,6 +1,4 @@
 {
-  // Bun runs the .ts files directly, so this config is only for editors
-  // (WebStorm / VS Code) and `tsc --noEmit`.
   "compilerOptions": {
     "target": "ESNext",
     "module": "ESNext",
@@ -10,10 +8,7 @@
     "allowImportingTsExtensions": true,
     "noEmit": true,
     "skipLibCheck": true,
-    "strict": true,
-    "esModuleInterop": true,
-    "resolveJsonModule": true,
-    "forceConsistentCasingInFileNames": true
+    "strict": true
   },
   "include": ["**/*.ts", ".dev/**/*.ts"],
   "exclude": ["node_modules", "dist"]

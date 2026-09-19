@@ -27,7 +27,7 @@ spec:
     spec:
       containers:
         - name: git
-          image: nixery.dev/git/bash/coreutils
+          image: nixery.dev/shell/git
           command: [bash, -c]
           args:
             - |
