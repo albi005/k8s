@@ -52,7 +52,8 @@ bun install
 
 # ensures the cdk8s generated .ts files (imports/) exist.
 # run by developers before editing app.ts files and by the CMP for each app.
-# parallel worker pool, output cached by cdk8s.yaml hash in $CDK8S_IMPORT_CACHE
+# every import runs in its own process, concurrently; output cached by cdk8s.yaml
+# hash in $CDK8S_IMPORT_CACHE
 bun run cdk8s:import
 
 # render ./APP_NAME/app.ts. app.ts default-exports a cdk8s App;

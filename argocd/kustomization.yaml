@@ -22,11 +22,7 @@ helmCharts:
           # https://argo-cd.readthedocs.io/en/stable/user-guide/kustomize/#kustomizing-helm-charts
           kustomize.buildOptions: "--enable-helm"
 
-        # Sidecar Config Management Plugin for cdk8s apps.
-        # Top-level directories containing an `app.ts` are synthesized with cdk8s.
-        # The shared `cdk8s.yaml` + `package.json` live at the repo root, so the
-        # generate step cd's to the root, installs deps, (re)generates `imports/`,
-        # then synthesizes only this app's `app.ts` into a per-app output dir.
+        # Configure our Config Management Plugin for cdk8s apps
         # https://argo-cd.readthedocs.io/en/stable/operator-manual/config-management-plugins/
         cmp:
           create: true
@@ -44,21 +40,13 @@ helmCharts:
                     out_dir="$root_dir/dist/$app_name"
                     cd "$root_dir"
 
-                    # Cache bun's downloads and the generated cdk8s imports on the
-                    # cmp-cache volume so repeat syncs skip both (see PLAN.md).
                     export BUN_INSTALL_CACHE_DIR=/cache/bun
                     export CDK8S_IMPORT_CACHE=/cache/cdk8s-imports
 
                     # copyfile backend -> real node_modules (no symlinks into bun's
                     # global cache, which breaks module resolution from nested dirs)
-                    if [ -f bun.lock ]; then bun install --frozen-lockfile --backend=copyfile >&2; else bun install --backend=copyfile >&2; fi
+                    bun install --frozen-lockfile --backend=copyfile >&2
                     bun run cdk8s:import >&2
-                    # materialize the imports symlink (import script caches via symlink)
-                    if [ -L imports ]; then
-                      target="$(readlink imports)"
-                      rm imports
-                      cp -rL "$target" imports
-                    fi
                     bun .dev/cdk8s-synth.ts "$app_name" --output "$out_dir" >&2
                     cat "$out_dir"/*.k8s.yaml
 
@@ -163,10 +151,6 @@ helmCharts:
               # bun needs a writable HOME for its install cache; /tmp is the cmp-tmp emptyDir.
               - name: HOME
                 value: /tmp
-              # A cold `cdk8s:import` spawns one process per import; 16 of them
-              # OOM the sidecar. Keep it small; the output is cached afterwards.
-              - name: CDK8S_IMPORT_PARALLELISM
-                value: "4"
             securityContext:
               runAsNonRoot: true
               runAsUser: 999
@@ -180,7 +164,7 @@ helmCharts:
                 ephemeral-storage: 0
               limits:
                 cpu: 2000m
-                memory: 2Gi
+                memory: 4Gi
                 ephemeral-storage: 2Gi
             volumeMounts:
               - mountPath: /var/run/argocd
