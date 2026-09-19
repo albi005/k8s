@@ -1,23 +1,24 @@
 {
-  "private": true,
-  "scripts": {
-    "cdk8s:import": "bun .dev/cdk8s-import.ts",
-    "cdk8s:synth": "bun .dev/cdk8s-synth.ts",
-    "local-cluster:up": "bun .dev/local-cluster.ts up",
-    "local-cluster:sync": "bun .dev/local-cluster.ts sync",
-    "local-cluster:down": "bun .dev/local-cluster.ts down",
-    "renovate": "bun .dev/renovate.ts",
-    "typecheck": "tsc --noEmit"
-  },
-  "dependencies": {
-    "cdk8s": "2.70.93",
-    "constructs": "10.8.1",
-    "yaml": "2.9.0"
-  },
-  "devDependencies": {
-    "@types/bun": "1.3.14",
-    "@types/node": "22.20.4",
-    "cdk8s-cli": "2.207.53",
-    "prettier": "3.9.8"
-  }
+    "private": true,
+    "scripts": {
+        "cdk8s:import": "bun .dev/cdk8s-import.ts",
+        "cdk8s:synth": "bun .dev/cdk8s-synth.ts",
+        "local-cluster:up": "bun .dev/local-cluster.ts up",
+        "local-cluster:sync": "bun .dev/local-cluster.ts sync",
+        "local-cluster:down": "bun .dev/local-cluster.ts down",
+        "renovate": "bun .dev/renovate.ts",
+        "typecheck": "tsc --noEmit"
+    },
+    "dependencies": {
+        "cdk8s": "2.70.93",
+        "constructs": "10.8.1",
+        "yaml": "2.9.0"
+    },
+    "devDependencies": {
+        "@types/bun": "1.3.14",
+        "@types/node": "22.20.4",
+        "cdk8s-cli": "2.207.53",
+        "prettier": "3.9.8"
+    },
+    "prettier": {}
 }
