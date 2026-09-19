@@ -1,6 +1,6 @@
 import { Construct } from 'constructs';
 import { App, Chart } from 'cdk8s';
-import { KubeDeployment, KubeNamespace, KubeService, Quantity } from '../imports/k8s';
+import { IntOrString, KubeDeployment, KubeNamespace, KubeService, Quantity } from '../imports/k8s';
 import { versions } from './versions.ts';
 
 /**
@@ -52,7 +52,7 @@ class DemoChart extends Chart {
       metadata,
       spec: {
         selector: labels,
-        ports: [{ port: 80, targetPort: 80 }],
+        ports: [{ port: 80, targetPort: IntOrString.fromNumber(80) }],
       },
     });
   }

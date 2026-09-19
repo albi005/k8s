@@ -16,7 +16,7 @@ const { matchImporter } = require('../node_modules/cdk8s-cli/lib/import/dispatch
 const spec = process.argv[2];
 const outdir = process.argv[3] ?? 'imports';
 
-const importSpec = { source: spec };
+const importSpec = { source: spec, moduleNamePrefix: undefined as string | undefined };
 const importer = await matchImporter(importSpec, { exclude: [] });
 if (!importer) throw new Error(`unable to determine import type for "${spec}"`);
 

@@ -17,7 +17,7 @@ const CACHE_DIR = process.env.CDK8S_IMPORT_CACHE ?? join(homedir(), '.cache', 'c
  * Must be called with the same `require` used to load cdk8s-cli so we mutate
  * the exact module instance its crd.js / k8s.js call into.
  */
-export function patchCdk8sDownload(require: NodeRequire): void {
+export function patchCdk8sDownload(require: NodeJS.Require): void {
   // Resolved relative to the `require` passed in (createRequire lives in
   // .dev/cdk8s-import-one.ts), so `../node_modules` is the repo root.
   const util = require('../node_modules/cdk8s-cli/lib/util');
@@ -38,8 +38,4 @@ export function patchCdk8sDownload(require: NodeRequire): void {
     writeFileSync(cacheFile, text);
     return text;
   };
-}
-
-export function sourceCacheDir(): string {
-  return CACHE_DIR;
 }
