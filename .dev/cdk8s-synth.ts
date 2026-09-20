@@ -6,7 +6,7 @@
  * `CDK8S_OUTDIR` env var, which `new App()` picks up, so app.ts stays free of
  * build plumbing.
  *
- * Usage: bun .dev/cdk8s-synth.ts APP_NAME [--output DIR]
+ * Usage: bun .dev/cdk8s-synth.ts APP_NAME
  *
  * ArgoCD runs this per cdk8s Application via the Config Management Plugin
  * sidecar; `dist/APP_NAME/*.k8s.yaml` is what gets applied.
@@ -14,17 +14,13 @@
 import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 
-const args = process.argv.slice(2);
-const outputFlag = args.indexOf("--output");
-const positional = args.filter((_, i) => (outputFlag < 0 ? true : i !== outputFlag && i !== outputFlag + 1));
-const appName = positional[0];
-
+const appName = process.argv[2];
 if (!appName) {
-    console.error("usage: bun .dev/cdk8s-synth.ts APP_NAME [--output DIR]");
+    console.error("usage: bun run cdk8s:synth APP_NAME");
     process.exit(1);
 }
 
-const outDir = outputFlag >= 0 ? args[outputFlag + 1] : join("dist", appName);
+const outDir = join("dist", appName);
 process.env.CDK8S_OUTDIR = outDir;
 
 const appPath = resolve(import.meta.dir, "..", appName, "app.ts");

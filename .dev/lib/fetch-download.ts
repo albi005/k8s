@@ -11,7 +11,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
 
-const CACHE_DIR = process.env.CDK8S_IMPORT_CACHE ?? join(homedir(), ".cache", "cdk8s-imports");
+const cacheDir = process.env.CDK8S_IMPORT_CACHE ?? join(homedir(), ".cache", "cdk8s-imports");
 
 /**
  * Must be called with the same `require` used to load cdk8s-cli so we mutate
@@ -27,14 +27,14 @@ export function patchCdk8sDownload(require: NodeJS.Require): void {
             return original(url); // file: / relative paths -> passthrough
         }
         const key = createHash("sha256").update(url).digest("hex");
-        const cacheFile = join(CACHE_DIR, key);
+        const cacheFile = join(cacheDir, key);
         if (existsSync(cacheFile)) {
             return readFileSync(cacheFile, "utf-8");
         }
         const res = await fetch(url, { redirect: "follow" });
         if (!res.ok) throw new Error(`${res.status} ${res.statusText}: ${url}`);
         const text = await res.text();
-        mkdirSync(CACHE_DIR, { recursive: true });
+        mkdirSync(cacheDir, { recursive: true });
         writeFileSync(cacheFile, text);
         return text;
     };

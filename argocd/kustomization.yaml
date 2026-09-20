@@ -30,25 +30,23 @@ helmCharts:
             cdk8s:
               discover:
                 fileName: "app.ts"
-              generate:
+              init:
                 command: [ bash, -c ]
                 args:
                   - |
                     set -e
-                    app_name="$(basename "$(pwd)")"
-                    root_dir="$(cd .. && pwd)"
-                    out_dir="$root_dir/dist/$app_name"
-                    cd "$root_dir"
-
                     export BUN_INSTALL_CACHE_DIR=/cache/bun
                     export CDK8S_IMPORT_CACHE=/cache/cdk8s-imports
 
-                    # copyfile backend -> real node_modules (no symlinks into bun's
-                    # global cache, which breaks module resolution from nested dirs)
-                    bun install --frozen-lockfile --backend=copyfile >&2
-                    bun run cdk8s:import >&2
-                    bun .dev/cdk8s-synth.ts "$app_name" --output "$out_dir" >&2
-                    cat "$out_dir"/*.k8s.yaml
+                    cd ..
+                    bun install --frozen-lockfile
+                    bun run cdk8s:import
+                    bun run cdk8s:synth $ARGOCD_APP_NAME
+              generate:
+                command: [ bash, -c ]
+                args:
+                  - |
+                    cat ../dist/$ARGOCD_APP_NAME/*.k8s.yaml
 
       global:
         networkPolicy:
@@ -138,10 +136,7 @@ helmCharts:
               memory: 32Mi
               ephemeral-storage: 50Mi
 
-        # Sidecar running the `cdk8s` CMP. Needs `bun` (run/synth cdk8s apps),
-        # `nodejs` (cdk8s-cli bin is a node script), `helm` (cdk8s import pulls
-        # helm charts), plus a shell + coreutils and ca-certificates.
-        # Provided by nixery: https://nixery.dev/
+        # Sidecar running the `cdk8s` CMP
         extraContainers:
           - name: cmp-cdk8s
             command: [ "/var/run/argocd/argocd-cmp-server" ]
