@@ -10,8 +10,6 @@ const K3S_IMAGE = "rancher/k3s:v1.35.0-k3s1";
 const GIT_SERVER_TARGET_BRANCH = "argocd-head";
 const GIT_SERVER_NAMESPACE = "argocd";
 const GIT_SERVER_SERVICE = "git-server";
-const GIT_SERVER_REPO = "k8s.git";
-const GIT_SERVER_SERVICE_URL = `git://${GIT_SERVER_SERVICE}.${GIT_SERVER_NAMESPACE}.svc.cluster.local:9418/${GIT_SERVER_REPO}`;
 const GIT_SERVER_PROXY_LOCAL_PORT = 19418;
 
 const VCLUSTERS = [
@@ -72,8 +70,6 @@ async function assertLocalContext(): Promise<void> {
     }
 }
 
-// --- git server -----------------------------------------------------------
-
 async function installGitServer(): Promise<void> {
     await check($`kubectl apply -f ${join(ROOT, ".dev/git-server.yaml")}`);
     await check($`kubectl -n ${GIT_SERVER_NAMESPACE} rollout status deployment/${GIT_SERVER_SERVICE} --timeout=180s`);
@@ -87,21 +83,14 @@ async function installGitServer(): Promise<void> {
  */
 async function publishHead(): Promise<void> {
     const forward = Bun.spawn(
-        [
-            "kubectl",
-            "-n",
-            GIT_SERVER_NAMESPACE,
-            "port-forward",
-            `svc/${GIT_SERVER_SERVICE}`,
-            `${GIT_SERVER_PROXY_LOCAL_PORT}:9418`,
-        ],
+        ["kubectl", "-n", "argocd", "port-forward", `svc/git-server`, `${GIT_SERVER_PROXY_LOCAL_PORT}:9418`],
         { stdout: "ignore", stderr: "ignore" },
     );
     try {
-        const localUrl = `git://127.0.0.1:${GIT_SERVER_PROXY_LOCAL_PORT}/${GIT_SERVER_REPO}`;
+        const localUrl = `git://127.0.0.1:${GIT_SERVER_PROXY_LOCAL_PORT}/k8s.git`;
         let ready = false;
         for (let i = 0; i < 40 && !ready; i++) {
-            ready = await ok($`timeout 1 git ls-remote ${localUrl}`);
+            ready = await ok($`timeout 2 git ls-remote ${localUrl}`);
             if (!ready) await Bun.sleep(500);
         }
         if (!ready) {
