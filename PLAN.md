@@ -147,3 +147,4 @@ scopes a `custom.regex` manager to
 - env vars when rendering an argocd Application (like ARGOCD_APP_NAME):
   https://argo-cd.readthedocs.io/en/stable/user-guide/build-environment/
 - https://cdk8s.io/docs/latest/cli/import/
+- Don't run format on the whole repo from WebStorm as it messes up Helm dependencies
