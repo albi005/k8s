@@ -5,7 +5,7 @@ import applicationSet from "../application-set/app.ts";
 import { kubectlApplyCdk8sApp } from "./kubectl-utils.ts";
 
 const ROOT = resolve(import.meta.dir, "..");
-const K3D_CLUSTER_NAME = "kirdev-dev-cluster";
+const K3D_CLUSTER_NAME = "kirdev-local-cluster";
 const K3S_IMAGE = "rancher/k3s:v1.35.0-k3s1";
 const GIT_SERVER_TARGET_BRANCH = "argocd-head";
 const GIT_SERVER_NAMESPACE = "argocd";
