@@ -10,6 +10,19 @@ spec:
     - port: 9418
       targetPort: 9418
 ---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: git-server-repos
+  namespace: argocd
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 100Mi
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -17,6 +30,8 @@ metadata:
   namespace: argocd
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: git-server
@@ -40,10 +55,13 @@ spec:
           ports:
             - containerPort: 9418
           readinessProbe:
-            tcpSocket:
-              port: 9418
+            exec:
+              command:
+                - git
+                - ls-remote
+                - git://127.0.0.1:9418/k8s.git
             initialDelaySeconds: 2
-            periodSeconds: 2
+            periodSeconds: 10
           resources:
             requests:
               cpu: 10m
@@ -58,4 +76,5 @@ spec:
               mountPath: /srv
       volumes:
         - name: repos
-          emptyDir: { }
+          persistentVolumeClaim:
+            claimName: git-server-repos

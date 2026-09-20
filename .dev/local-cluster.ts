@@ -144,10 +144,9 @@ async function up(): Promise<void> {
     await ensureVcluster(VCLUSTERS[0]);
     await ensureVcluster(VCLUSTERS[1]);
 
-    const argocdInstallPromise = installArgoCd();
+    await installArgoCd();
     await installGitServer();
     await publishHead();
-    await argocdInstallPromise;
     await kubectlApplyCdk8sApp(applicationSet);
 
     await sync();
