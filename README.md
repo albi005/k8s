@@ -1,6 +1,7 @@
-TODO: Update README TODO: is the resource request/limit bug not mentioned anywhere?
-
 # Kir-Dev Kubernetes configuration
+
+This repo contains our Kubernetes configuration,
+deployed following GitOps principles using Argo CD.
 
 ## Running locally
 
@@ -34,47 +35,81 @@ and [vcluster](https://www.vcluster.com/install):
   sudo chmod +x /usr/local/bin/vcluster
   ```
 
+Once you have all the tools needed, deploy the cluster on your local computer using k3d:
+
 ```bash
 git clone https://github.com/kir-dev/k8s
 cd k8s
 
+# install JS dependencies,
+# rerun anytime dependencies in package.json change!
 bun install
+
+# install Kubernetes Custom Resource Definitions so that they are usable through TypeScript,
+# rerun anytime cdk8s.yaml changes!
+bun run cdk8s:import
+
+# creates a k3d cluster very similar to prod
 bun run local-cluster:up
 
-# after committing changes, publish them and let ArgoCD reconcile
+# update the local config, commit!,
+# then run this to push your changes to the local cluster
 bun run local-cluster:sync
 
-# tear everything down
+# delete the local k3d cluster
 bun run local-cluster:down
 ```
+
+If you run into any issues [open an issue](https://github.com/kir-dev/k8s/issues/new),
+so that others won't have to run into it again.
 
 ## Adding a new app
 
 Create a new directory containing
 
-- `.yaml` files defining Kubernetes resources, or
-- a `kustomization.yaml`.
+- a cdk8s app:
+  - `app.ts`:
+    ```ts
+    import { versions } from "./versions.ts";
+    import { IntOrString, KubeDeployment, KubeNamespace, KubeService, Quantity } from "../imports/k8s";
+    import * as environment from "../.dev/environment.ts";
+    import * as cnpg from "../imports/postgresql.cnpg.io.ts";
+    class MyApp extends Chart {
+        constructor(scope: Construct, id: string) {
+            super(scope, id);
+            new cnpg.Cluster(this, /*...*/);
+            new KubeDeployment(this, /*...*/);
+            /*...*/
+        }
+    }
+    const app = new App();
+    new MyApp(app, "myapp");
+    export default app;
+    ```
+  - `renovate.ts`:
+    ```ts
+    import { appConfig } from "../.dev/renovate-config.ts";
+    export default appConfig("myapp");
+    ```
+  - `versions.ts`:
+    ```ts
+    export const versions = {
+        image: "https://github.com/kir-dev/myapp:0.0.1@sha256:aaaaaaaaaaaaaa",
+    };
+    ```
+- or `.yaml` files defining Kubernetes resources,
+- or a `kustomization.yaml`.
     - You can use
       [`helmCharts:`](https://kubectl.docs.kubernetes.io/references/kustomize/builtins/#_helmchartinflationgenerator_)
       to install Helm charts. Set values either using `valuesInline:` or by creating a `values.yaml` and referencing it
       using `valuesFile:`.
-- a cdk8s app: an `app.ts` (see `PLAN.md`).
 
 ArgoCD checks each top-level directory except the ones starting with a `.`. If it sees `kustomization.yaml`, it
 `kubectl apply --kustomize`s it, otherwise it applies `.yaml` files using `kubectl apply`.
 
-### cdk8s apps
-
-See `PLAN.md` for the cdk8s layout (`app.ts`, `versions.ts`, `renovate.ts`) and the shared `cdk8s.yaml`/`imports/`
-model. `demo/` is a minimal example.
-
-## Documentation
-
-- https://kubectl.docs.kubernetes.io/references/kustomize/kustomization/
-- ArgoCD `Application` reference: https://argo-cd.readthedocs.io/en/stable/user-guide/application-specification/
-- Manage Argo CD Using Argo CD:
-  https://argo-cd.readthedocs.io/en/stable/operator-manual/declarative-setup/#manage-argo-cd-using-argo-cd
-- Kustomization file documentation: https://kubectl.docs.kubernetes.io/references/kustomize/kustomization/
+> [!IMPORTANT]
+> Ensure that every single deployment/pod has CPU/memory/ephemeral-storage requests/limits specified (even for resources created by a Helm chart!).
+> Missing it anywhere causes ArgoCD to crash due to a bug with nested vClusters.
 
 ## Notes
 
@@ -87,8 +122,23 @@ model. `demo/` is a minimal example.
       ```
       at the top of the `values.yaml`. Find the `values.schema.json` file in the chart's GitHub repository, then press
       the *Raw* button to get a link.
-- Set `resources.{limits,requests}.ephemeral-storage`, as the default (1GiB) uses more than allowed by the quota
-  (especially for the limit)
+- Set `resources.{limits,requests}.ephemeral-storage`, as the default (1GiB) uses up too much of our quota.
 - Always specify the Postgres image version for CNPG `Cluster`s, otherwise backups can't be restored due to the version
   mismatch
 - Don't forget `database`/`owner` fields when restoring a CNPG DB from a backup
+
+## Documentation links
+
+- ArgoCD `Application` resource reference: https://argo-cd.readthedocs.io/en/stable/user-guide/application-specification/
+- Manage Argo CD Using Argo CD:
+  https://argo-cd.readthedocs.io/en/stable/operator-manual/declarative-setup/#manage-argo-cd-using-argo-cd
+- `kustomization.yaml` documentation: https://kubectl.docs.kubernetes.io/references/kustomize/kustomization/
+
+## Bootstrapping the production cluster
+
+Given `kubectl config current-context` == `vc-kirdev`, installs the inner vCluster, Argo CD and the ApplicationSet:
+
+```bash
+bun install
+bun run bootstrap-prod
+```

@@ -1,6 +1,5 @@
 import { ApplicationSet } from "../imports/argoproj.io";
 import * as environment from "../.dev/environment.ts";
-import { k8sRepoRevision, k8sRepoUrl } from "../.dev/environment.ts";
 import { singletonApp } from "../.dev/cdk8s-utils.ts";
 
 export default singletonApp("argocd", (scope) => {
@@ -38,8 +37,8 @@ export default singletonApp("argocd", (scope) => {
                 spec: {
                     project: "default",
                     source: {
-                        repoUrl: k8sRepoUrl,
-                        targetRevision: k8sRepoRevision,
+                        repoUrl: environment.k8sRepoUrl,
+                        targetRevision: environment.k8sRepoRevision,
                         path: "{{.path.path}}",
                     },
                     destination: { name: "in-cluster" },

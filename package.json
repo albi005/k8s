@@ -6,6 +6,7 @@
         "local-cluster:up": "bun .dev/local-cluster.ts up",
         "local-cluster:sync": "bun .dev/local-cluster.ts sync",
         "local-cluster:down": "bun .dev/local-cluster.ts down",
+        "bootstrap-prod": "KIRDEV_ENVIRONMENT=Production KIRDEV_K8S_REPO_URL=https://github.com/kir-dev/k8s bun .dev/bootstrap-prod.ts",
         "renovate": "bun .dev/renovate.ts",
         "typecheck": "tsc --noEmit"
     },

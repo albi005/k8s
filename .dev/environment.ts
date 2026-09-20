@@ -13,6 +13,4 @@ export const k8sRepoUrl =
         throw new Error("KIRDEV_K8S_REPO_URL not set.");
     })();
 
-export const k8sRepoPort = process.env.KIRDEV_K8S_REPO_PORT;
-
 export const k8sRepoRevision = process.env.KIRDEV_K8S_REPO_REVISION;
