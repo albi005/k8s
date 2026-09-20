@@ -1,7 +1,8 @@
 import { $ } from "bun";
 import { join, resolve } from "node:path";
-import { createInterface } from "node:readline/promises";
-import { check, have, ok, text } from "./shell-utils";
+import { check, confirm, have, ok, text } from "./shell-utils";
+import applicationSet from "../application-set/app.ts";
+import { kubectlApplyCdk8sApp } from "./kubectl-utils.ts";
 
 const ROOT = resolve(import.meta.dir, "..");
 const K3D_CLUSTER_NAME = "kirdev-dev-cluster";
@@ -18,24 +19,8 @@ const VCLUSTERS = [
     { name: "vc2", namespace: "vc2", file: join(ROOT, ".vclusters/vc2/vcluster.yaml") },
 ];
 
-const args = process.argv.slice(2);
-const command = args[0];
-const yes = args.includes("--yes") || args.includes("-y");
-
 async function isDirty(): Promise<boolean> {
     return (await text($`git -C ${ROOT} status --porcelain`)) !== "";
-}
-
-async function confirm(question: string): Promise<boolean> {
-    if (yes) return true;
-    if (!process.stdin.isTTY) {
-        console.error("✗ not a TTY; re-run with --yes to proceed");
-        return false;
-    }
-    const rl = createInterface({ input: process.stdin, output: process.stdout });
-    const answer = (await rl.question(`${question} [y/N] `)).trim().toLowerCase();
-    rl.close();
-    return answer === "y" || answer === "yes";
 }
 
 // --- cluster --------------------------------------------------------------
@@ -132,7 +117,7 @@ async function publishHead(): Promise<void> {
 // --- ArgoCD ---------------------------------------------------------------
 
 async function installArgoCd(): Promise<void> {
-    await check($`bash -c ${"kubectl kustomize --enable-helm argocd/ | kubectl apply -f -"}`.cwd(ROOT));
+    await check($`kubectl kustomize --enable-helm argocd/ | kubectl apply -f -`.cwd(ROOT));
     await check(
         $`kubectl wait --for=condition=Established --timeout=180s crd/applications.argoproj.io crd/applicationsets.argoproj.io`,
     );
@@ -142,13 +127,6 @@ async function installArgoCd(): Promise<void> {
 async function applyDevStorageClasses(): Promise<void> {
     await check($`kubectl apply -f ${join(ROOT, ".dev/dev-storage-classes.yaml")}`);
 }
-
-async function applyBootstrapApplicationSet(): Promise<void> {
-    await check($`bun run cdk8s:synth application-set`.cwd(ROOT));
-    await check($`kubectl apply -f ${join(ROOT, "dist/application-set/application-set.k8s.yaml")}`);
-}
-
-// --- commands -------------------------------------------------------------
 
 async function up(): Promise<void> {
     for (const bin of ["k3d", "vcluster", "kubectl", "helm", "git", "bun"]) {
@@ -194,12 +172,7 @@ async function sync(): Promise<void> {
 
     await publishHead();
 
-    // Re-apply the bootstrap ApplicationSet from the working tree so it always
-    // points at the in-cluster git server (self-managed ArgoCD would otherwise
-    // be able to flip it to the prod URL).
-    process.env.K8S_LOCAL = "1";
-    process.env.K8S_LOCAL_REPO_URL = GIT_SERVER_SERVICE_URL;
-    await applyBootstrapApplicationSet();
+    await kubectlApplyCdk8sApp(applicationSet);
 
     // Force the ApplicationSet controller to re-read the pushed branch. The
     // `apps` ApplicationSet is self-managed, so syncing its Application updates
@@ -219,6 +192,7 @@ async function down(): Promise<void> {
     await check($`k3d cluster delete ${K3D_CLUSTER_NAME}`);
 }
 
+const command = process.argv[2];
 const commands = { up, sync, down } as const;
 if (!command || !(command in commands)) {
     console.error("usage: bun run local-cluster:{up,sync,down} [--yes]");

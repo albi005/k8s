@@ -2,7 +2,7 @@
  * Usage: bun .dev/cdk8s-import-one.ts <spec>
  */
 import { createRequire } from "node:module";
-import { patchCdk8sDownload } from "./lib/fetch-download";
+import { patchCdk8sDownload } from "./cdk8s-download-patch";
 
 const require = createRequire(import.meta.url);
 patchCdk8sDownload(require);
@@ -19,6 +19,7 @@ process.stderr.write(`Importing ${spec}...\n`);
 await importer.import({
     moduleNamePrefix: importSpec.moduleNamePrefix,
     targetLanguage: "typescript",
+    outdir: "imports",
     classNamePrefix: undefined,
 });
 process.exit(0);

@@ -1,4 +1,5 @@
 import { $ } from "bun";
+import { createInterface } from "node:readline/promises";
 
 export type ShellCmd = ReturnType<typeof $>;
 
@@ -20,4 +21,18 @@ export async function text(cmd: ShellCmd): Promise<string> {
 
 export function have(cmd: string): Promise<boolean> {
     return ok($`which ${cmd}`);
+}
+
+const yes = process.argv.includes("--yes");
+
+export async function confirm(question: string): Promise<boolean> {
+    if (yes) return true;
+    if (!process.stdin.isTTY) {
+        console.error("✗ not a TTY; re-run with --yes to proceed");
+        return false;
+    }
+    const rl = createInterface({ input: process.stdin, output: process.stdout });
+    const answer = (await rl.question(`${question} [y/N] `)).trim().toLowerCase();
+    rl.close();
+    return answer === "y" || answer === "yes";
 }

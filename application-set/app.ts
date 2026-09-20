@@ -1,67 +1,57 @@
-import { Construct } from "constructs";
-import { App, Chart } from "cdk8s";
 import { ApplicationSet } from "../imports/argoproj.io";
 import * as environment from "../.dev/environment.ts";
+import { k8sRepoRevision, k8sRepoUrl } from "../.dev/environment.ts";
+import { singletonApp } from "../.dev/cdk8s-utils.ts";
 
-class AppSetChart extends Chart {
-    constructor(scope: Construct, id: string) {
-        super(scope, id);
-
-        new ApplicationSet(this, "apps", {
-            metadata: {
-                name: "apps",
-                namespace: "argocd",
-            },
-            spec: {
-                goTemplate: true,
-                goTemplateOptions: ["missingkey=error"],
-                generators: [
-                    {
-                        git: {
-                            repoUrl: environment.k8sRepoUrl,
-                            revision: environment.k8sRepoRevision ?? "HEAD",
-                            directories: [
-                                // include all directories
-                                {
-                                    path: "*",
-                                },
-                                // exclude directories starting with .
-                                {
-                                    path: ".*",
-                                    exclude: true,
-                                },
-                            ],
-                        },
-                    },
-                ],
-                template: {
-                    metadata: {
-                        name: "{{.path.basename}}",
-                        finalizers: ["resources-finalizer.argocd.argoproj.io"],
-                    },
-                    spec: {
-                        project: "default",
-                        source: {
-                            repoUrl,
-                            targetRevision: revision,
-                            path: "{{.path.path}}",
-                        },
-                        destination: { name: "in-cluster" },
-                        syncPolicy: {
-                            automated: {
-                                prune: true,
-                                selfHeal: true,
+export default singletonApp("argocd", (scope) => {
+    new ApplicationSet(scope, "application-set", {
+        metadata: {
+            name: "application-set",
+        },
+        spec: {
+            goTemplate: true,
+            goTemplateOptions: ["missingkey=error"],
+            generators: [
+                {
+                    git: {
+                        repoUrl: environment.k8sRepoUrl,
+                        revision: environment.k8sRepoRevision ?? "HEAD",
+                        directories: [
+                            // include all directories
+                            {
+                                path: "*",
                             },
-                            syncOptions: ["ServerSideApply=true", "CreateNamespace=true"],
+                            // exclude .directories
+                            {
+                                path: ".*",
+                                exclude: true,
+                            },
+                        ],
+                    },
+                },
+            ],
+            template: {
+                metadata: {
+                    name: "{{.path.basename}}",
+                    finalizers: ["resources-finalizer.argocd.argoproj.io"],
+                },
+                spec: {
+                    project: "default",
+                    source: {
+                        repoUrl: k8sRepoUrl,
+                        targetRevision: k8sRepoRevision,
+                        path: "{{.path.path}}",
+                    },
+                    destination: { name: "in-cluster" },
+                    syncPolicy: {
+                        automated: {
+                            prune: true,
+                            selfHeal: true,
                         },
+                        syncOptions: ["ServerSideApply=true", "CreateNamespace=true"],
                     },
                 },
             },
-        });
-    }
-}
-
-const app = new App();
-new AppSetChart(app, "application-set", await sourceRepoUrl(), await sourceRevision());
-
-export default app;
+        },
+    });
+});
