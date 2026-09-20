@@ -3,9 +3,9 @@ import { join, resolve } from "node:path";
 import { createInterface } from "node:readline/promises";
 
 const ROOT = resolve(import.meta.dir, "..");
-const CLUSTER = "kirdev-dev-cluster";
+const K3D_CLUSTER_NAME = "kirdev-dev-cluster";
 const K3S_IMAGE = "rancher/k3s:v1.35.0-k3s1";
-const BRANCH = "argocd-head";
+const GIT_SERVER_TARGET_BRANCH = "argocd-head";
 const GIT_SERVER_NAMESPACE = "argocd";
 const GIT_SERVER_SERVICE = "git-server";
 const GIT_SERVER_REPO = "k8s.git";
@@ -66,7 +66,7 @@ async function k3dClusterExists(): Promise<boolean> {
     if (r.exitCode !== 0) return false;
     try {
         const clusters = JSON.parse(r.text()) as { name: string }[];
-        return clusters.some((c) => c.name === CLUSTER);
+        return clusters.some((c) => c.name === K3D_CLUSTER_NAME);
     } catch {
         return false;
     }
@@ -101,8 +101,8 @@ async function currentContext(): Promise<string> {
 
 async function assertLocalContext(): Promise<void> {
     const ctx = await currentContext();
-    if (!ctx.includes("vcluster") || !ctx.includes(CLUSTER)) {
-        console.error(`✗ current kubectl context "${ctx}" does not look like the local cluster (${CLUSTER}).`);
+    if (!ctx.includes("vcluster") || !ctx.includes(K3D_CLUSTER_NAME)) {
+        console.error(`✗ current kubectl context "${ctx}" does not look like the local cluster (${K3D_CLUSTER_NAME}).`);
         console.error("  Run `bun run local-cluster:up`.");
         process.exit(1);
     }
@@ -144,7 +144,7 @@ async function publishHead(): Promise<void> {
             console.error(`✗ could not reach the in-cluster git server on 127.0.0.1:${GIT_SERVER_PROXY_LOCAL_PORT}`);
             process.exit(1);
         }
-        await check($`git -C ${ROOT} push --force ${localUrl} HEAD:refs/heads/${BRANCH}`);
+        await check($`git -C ${ROOT} push --force ${localUrl} HEAD:refs/heads/${GIT_SERVER_TARGET_BRANCH}`);
     } finally {
         forward.kill();
     }
@@ -188,15 +188,15 @@ async function up(): Promise<void> {
     await check($`bun run cdk8s:import`.cwd(ROOT));
 
     if (!(await k3dClusterExists())) {
-        await check($`k3d cluster create ${CLUSTER} --image ${K3S_IMAGE}`);
+        await check($`k3d cluster create ${K3D_CLUSTER_NAME} --image ${K3S_IMAGE}`);
     } else {
-        console.log(`✓ k3d cluster ${CLUSTER} exists`);
+        console.log(`✓ k3d cluster ${K3D_CLUSTER_NAME} exists`);
     }
 
     // vc1 is created on the k3d cluster, vc2 nested inside vc1. On a re-run the
     // existing vCluster must be re-connected so the next one lands in the right
     // parent.
-    await check($`kubectl config use-context k3d-${CLUSTER}`);
+    await check($`kubectl config use-context k3d-${K3D_CLUSTER_NAME}`);
     await applyDevStorageClasses();
     await ensureVcluster(VCLUSTERS[0]);
     await ensureVcluster(VCLUSTERS[1]);
@@ -212,7 +212,7 @@ async function sync(): Promise<void> {
 
     if (await isDirty()) {
         console.warn("⚠ the working tree is dirty. Only committed work is pushed to");
-        console.warn(`  ${BRANCH}, so ArgoCD will not see your uncommitted changes.`);
+        console.warn(`  ${GIT_SERVER_TARGET_BRANCH}, so ArgoCD will not see your uncommitted changes.`);
         if (!(await confirm("Continue anyway?"))) process.exit(1);
     }
 
@@ -242,7 +242,7 @@ async function sync(): Promise<void> {
 ──────────────────────────────────────────────
 Local cluster ready.
   repo:      ${GIT_SERVER_SERVICE_URL}
-  branch:    ${BRANCH}
+  branch:    ${GIT_SERVER_TARGET_BRANCH}
   watch:     kubectl -n argocd get applications -w
   portal:    kubectl -n argocd port-forward svc/argocd-server 8080:443
   teardown:  bun run local-cluster:down
@@ -251,9 +251,9 @@ Local cluster ready.
 
 async function down(): Promise<void> {
     if (await k3dClusterExists()) {
-        await check($`k3d cluster delete ${CLUSTER}`);
+        await check($`k3d cluster delete ${K3D_CLUSTER_NAME}`);
     } else {
-        console.log(`k3d cluster ${CLUSTER} not found`);
+        console.log(`k3d cluster ${K3D_CLUSTER_NAME} not found`);
     }
 }
 
