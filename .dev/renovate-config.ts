@@ -27,7 +27,6 @@ export function appConfig(app: string, options: RenovateAppOptions = {}): AllCon
         onboarding: false,
         requireConfig: "optional",
         gitAuthor,
-        // token is provided by the app repository's CI secrets (RENOVATE_TOKEN)
         token: process.env.RENOVATE_TOKEN,
         repositories: [
             {

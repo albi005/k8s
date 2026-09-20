@@ -1,10 +1,6 @@
 /**
- * Shared: patch cdk8s-cli's `download()` to use `fetch` + a content cache.
- *
- * cdk8s-cli's own `download()` (src/util.ts) never drains 301/302 redirect
- * bodies, so a redirecting URL holds a socket open and the process hangs ~30s.
- * `fetch` follows and drains redirects correctly. The cache avoids re-fetching
- * unchanged sources (k8s schema + CRD URLs).
+ * Patch cdk8s download() https://github.com/cdk8s-team/cdk8s-cli/blob/7d810de7cbd34d1729e35192c05a3bf00ac33dd7/src/util.ts#L164
+ * to fix redirect handling and add caching.
  */
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -23,19 +19,24 @@ export function patchCdk8sDownload(require: NodeJS.Require): void {
     const util = require("../node_modules/cdk8s-cli/lib/util");
     const original = util.download;
     util.download = async (url: string): Promise<string> => {
+        // Let the original function handle non-https requests
         if (!/^https?:/i.test(url)) {
-            return original(url); // file: / relative paths -> passthrough
+            return original(url);
         }
-        const key = createHash("sha256").update(url).digest("hex");
-        const cacheFile = join(cacheDir, key);
-        if (existsSync(cacheFile)) {
-            return readFileSync(cacheFile, "utf-8");
+
+        // Check the cache
+        const cacheKey = createHash("sha256").update(url).digest("hex");
+        const cacheFilePath = join(cacheDir, cacheKey);
+        if (existsSync(cacheFilePath)) {
+            return readFileSync(cacheFilePath, "utf-8");
         }
+
+        // No cache, request and store in cache
         const res = await fetch(url, { redirect: "follow" });
         if (!res.ok) throw new Error(`${res.status} ${res.statusText}: ${url}`);
         const text = await res.text();
         mkdirSync(cacheDir, { recursive: true });
-        writeFileSync(cacheFile, text);
+        writeFileSync(cacheFilePath, text);
         return text;
     };
 }
