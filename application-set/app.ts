@@ -1,26 +1,10 @@
 import { Construct } from "constructs";
 import { App, Chart } from "cdk8s";
 import { ApplicationSet } from "../imports/argoproj.io";
-import { sourceRepoUrl, sourceRevision } from "../.dev/is-local.ts";
-import * as tempo from "../imports/tempo.ts";
-import * as argocd from "../imports/argo-cd.ts";
-import * as certmanager from "../imports/cert-manager.ts";
-import * as cnpgHelm from "../imports/cloudnative-pg.ts";
+import * as environment from "../.dev/environment.ts";
 
-/**
- * The app-of-apps ApplicationSet.
- *
- * Every top-level directory except dotdirs (`.dev`, `.vclusters`, ...) becomes
- * an ArgoCD Application. This ApplicationSet is itself managed by ArgoCD (it
- * carries the `application-set` directory), so the bootstrap copy is applied
- * once by `local-cluster:up` / an admin and then kept in sync.
- *
- * `sourceRepoUrl()`/`sourceRevision()` make it render against
- * github.com/kir-dev/k8s in prod and against the local git daemon's
- * `argocd-head` branch when `isLocal()`.
- */
 class AppSetChart extends Chart {
-    constructor(scope: Construct, id: string, repoUrl: string, revision: string) {
+    constructor(scope: Construct, id: string) {
         super(scope, id);
 
         new ApplicationSet(this, "apps", {
@@ -34,14 +18,14 @@ class AppSetChart extends Chart {
                 generators: [
                     {
                         git: {
-                            repoUrl,
-                            revision,
+                            repoUrl: environment.k8sRepoUrl,
+                            revision: environment.k8sRepoRevision ?? "HEAD",
                             directories: [
-                                // include all
+                                // include all directories
                                 {
                                     path: "*",
                                 },
-                                // exclude dirs starting with .
+                                // exclude directories starting with .
                                 {
                                     path: ".*",
                                     exclude: true,

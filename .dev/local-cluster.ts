@@ -1,39 +1,20 @@
-/**
- * Local test cluster lifecycle (PLAN.md).
- *
- *   bun run local-cluster:up     k3d + nested vClusters + ArgoCD + git server + ApplicationSet
- *   bun run local-cluster:sync   push HEAD to the in-cluster git server and reconcile
- *   bun run local-cluster:down   delete the k3d cluster
- *
- * ArgoCD runs in the innermost vCluster (vc2), so a git daemon on the host
- * isn't reachable from it (nested DNS + host firewall). Instead an in-cluster
- * `git-server` serves a bare repo; `sync` pushes your committed HEAD to it via
- * `kubectl port-forward`, and ArgoCD renders from a `git://` URL. `sync`
- * refuses to push while the tree is dirty unless you pass --yes.
- */
 import { $ } from "bun";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 import { createInterface } from "node:readline/promises";
 
 const ROOT = resolve(import.meta.dir, "..");
-const CLUSTER = process.env.LOCAL_CLUSTER_NAME ?? "mycluster";
-const K3S_IMAGE = process.env.LOCAL_K3S_IMAGE ?? "rancher/k3s:v1.35.0-k3s1";
+const CLUSTER = "kirdev-dev-cluster";
+const K3S_IMAGE = "rancher/k3s:v1.35.0-k3s1";
 const BRANCH = "argocd-head";
-const GIT_NAMESPACE = "argocd";
-const GIT_SERVICE = "git-server";
-const GIT_REPO = "k8s.git";
-/** Reachable from inside the cluster (vc2). */
-const GIT_SERVICE_URL = `git://${GIT_SERVICE}.${GIT_NAMESPACE}.svc.cluster.local:9418/${GIT_REPO}`;
-/** Local port used to push into the cluster through `kubectl port-forward`. */
-const FORWARD_PORT = Number(process.env.DEV_GIT_FORWARD_PORT ?? 19418);
-const STATE_DIR = join("/tmp", "k8s-local-cluster");
-mkdirSync(STATE_DIR, { recursive: true });
+const GIT_SERVER_NAMESPACE = "argocd";
+const GIT_SERVER_SERVICE = "git-server";
+const GIT_SERVER_REPO = "k8s.git";
+const GIT_SERVER_SERVICE_URL = `git://${GIT_SERVER_SERVICE}.${GIT_SERVER_NAMESPACE}.svc.cluster.local:9418/${GIT_SERVER_REPO}`;
+const GIT_SERVER_PROXY_LOCAL_PORT = 19418;
 
 const VCLUSTERS = [
-    { name: "vc1", namespace: "vc1", file: join(ROOT, ".vclusters/vc1/vcluster.yaml"), local: false },
-    { name: "vc2", namespace: "vc2", file: join(ROOT, ".vclusters/vc2/vcluster.yaml"), local: true },
+    { name: "vc1", namespace: "vc1", file: join(ROOT, ".vclusters/vc1/vcluster.yaml") },
+    { name: "vc2", namespace: "vc2", file: join(ROOT, ".vclusters/vc2/vcluster.yaml") },
 ];
 
 const args = process.argv.slice(2);
@@ -84,7 +65,7 @@ async function k3dClusterExists(): Promise<boolean> {
     const r = await $`k3d cluster list -o json`.quiet().nothrow();
     if (r.exitCode !== 0) return false;
     try {
-        const clusters = JSON.parse(await r.text()) as { name: string }[];
+        const clusters = JSON.parse(r.text()) as { name: string }[];
         return clusters.some((c) => c.name === CLUSTER);
     } catch {
         return false;
@@ -95,7 +76,7 @@ async function vclusterExists(name: string): Promise<boolean> {
     const r = await $`vcluster list -o json`.quiet().nothrow();
     if (r.exitCode !== 0) return false;
     try {
-        const vcs = JSON.parse(await r.text()) as { name: string }[];
+        const vcs = JSON.parse(r.text()) as { name: string }[];
         return vcs.some((v) => v.name === name);
     } catch {
         return false;
@@ -103,29 +84,15 @@ async function vclusterExists(name: string): Promise<boolean> {
 }
 
 /** Create the vCluster on the current context, or connect to it if it exists. */
-async function ensureVcluster(v: (typeof VCLUSTERS)[number]): Promise<void> {
-    if (!(await vclusterExists(v.name))) {
-        await check($`vcluster create ${v.name} -n ${v.namespace} -f ${localVclusterFile(v)}`);
+async function ensureVcluster(vcluster: (typeof VCLUSTERS)[number]): Promise<void> {
+    if (!(await vclusterExists(vcluster.name))) {
+        await check($`vcluster create ${vcluster.name} -n ${vcluster.namespace} -f ${vcluster.file}`);
         return;
     }
-    console.log(`✓ vcluster ${v.name} exists`);
-    if (!(await currentContext()).includes(`vcluster_${v.name}_`)) {
-        await check($`vcluster connect ${v.name} -n ${v.namespace}`);
+    console.log(`✓ vcluster ${vcluster.name} exists`);
+    if (!(await currentContext()).includes(`vcluster_${vcluster.name}_`)) {
+        await check($`vcluster connect ${vcluster.name} -n ${vcluster.namespace}`);
     }
-}
-
-/** `.vclusters/vc2` persists its control plane on a prod storage class; drop it locally. */
-function localVclusterFile(v: (typeof VCLUSTERS)[number]): string {
-    if (!v.local) return v.file;
-    const doc = parseYaml(readFileSync(v.file, "utf-8"));
-    if (doc?.controlPlane?.statefulSet?.persistence) {
-        delete doc.controlPlane.statefulSet.persistence;
-        const out = join(STATE_DIR, `${v.name}-local.yaml`);
-        writeFileSync(out, stringifyYaml(doc));
-        console.log(`✓ wrote ${out} (memory-ssd persistence removed)`);
-        return out;
-    }
-    return v.file;
 }
 
 async function currentContext(): Promise<string> {
@@ -136,7 +103,7 @@ async function assertLocalContext(): Promise<void> {
     const ctx = await currentContext();
     if (!ctx.includes("vcluster") || !ctx.includes(CLUSTER)) {
         console.error(`✗ current kubectl context "${ctx}" does not look like the local cluster (${CLUSTER}).`);
-        console.error("  Run `vcluster connect vc2 -n vc2` (or re-run local-cluster:up) first.");
+        console.error("  Run `bun run local-cluster:up`.");
         process.exit(1);
     }
 }
@@ -145,7 +112,7 @@ async function assertLocalContext(): Promise<void> {
 
 async function installGitServer(): Promise<void> {
     await check($`kubectl apply -f ${join(ROOT, ".dev/git-server.yaml")}`);
-    await check($`kubectl -n ${GIT_NAMESPACE} rollout status deployment/${GIT_SERVICE} --timeout=180s`);
+    await check($`kubectl -n ${GIT_SERVER_NAMESPACE} rollout status deployment/${GIT_SERVER_SERVICE} --timeout=180s`);
 }
 
 /**
@@ -156,18 +123,25 @@ async function installGitServer(): Promise<void> {
  */
 async function publishHead(): Promise<void> {
     const forward = Bun.spawn(
-        ["kubectl", "-n", GIT_NAMESPACE, "port-forward", `svc/${GIT_SERVICE}`, `${FORWARD_PORT}:9418`],
+        [
+            "kubectl",
+            "-n",
+            GIT_SERVER_NAMESPACE,
+            "port-forward",
+            `svc/${GIT_SERVER_SERVICE}`,
+            `${GIT_SERVER_PROXY_LOCAL_PORT}:9418`,
+        ],
         { stdout: "ignore", stderr: "ignore" },
     );
     try {
-        const localUrl = `git://127.0.0.1:${FORWARD_PORT}/${GIT_REPO}`;
+        const localUrl = `git://127.0.0.1:${GIT_SERVER_PROXY_LOCAL_PORT}/${GIT_SERVER_REPO}`;
         let ready = false;
         for (let i = 0; i < 40 && !ready; i++) {
-            ready = await ok($`timeout 3 git ls-remote ${localUrl}`);
+            ready = await ok($`timeout 1 git ls-remote ${localUrl}`);
             if (!ready) await Bun.sleep(500);
         }
         if (!ready) {
-            console.error(`✗ could not reach the in-cluster git server on 127.0.0.1:${FORWARD_PORT}`);
+            console.error(`✗ could not reach the in-cluster git server on 127.0.0.1:${GIT_SERVER_PROXY_LOCAL_PORT}`);
             process.exit(1);
         }
         await check($`git -C ${ROOT} push --force ${localUrl} HEAD:refs/heads/${BRANCH}`);
@@ -192,9 +166,7 @@ async function applyDevStorageClasses(): Promise<void> {
 
 async function applyBootstrapApplicationSet(): Promise<void> {
     await check($`bun run cdk8s:synth application-set`.cwd(ROOT));
-    // cdk8s-synth prints progress to stderr; read the generated file instead.
-    const manifest = readFileSync(join(ROOT, "dist/application-set/application-set.k8s.yaml"), "utf-8");
-    await check($`echo ${manifest} | kubectl apply -f -`);
+    await check($`kubectl apply -f ${join(ROOT, "dist/application-set/application-set.k8s.yaml")}`);
 }
 
 // --- commands -------------------------------------------------------------
@@ -212,7 +184,7 @@ async function up(): Promise<void> {
         console.warn("  ArgoCD only sees committed work; run `bun run local-cluster:sync` to publish HEAD.");
     }
 
-    if (!existsSync(join(ROOT, "node_modules"))) await check($`bun install`.cwd(ROOT));
+    await check($`bun install`.cwd(ROOT));
     await check($`bun run cdk8s:import`.cwd(ROOT));
 
     if (!(await k3dClusterExists())) {
@@ -225,11 +197,10 @@ async function up(): Promise<void> {
     // existing vCluster must be re-connected so the next one lands in the right
     // parent.
     await check($`kubectl config use-context k3d-${CLUSTER}`);
+    await applyDevStorageClasses();
     await ensureVcluster(VCLUSTERS[0]);
     await ensureVcluster(VCLUSTERS[1]);
 
-    // ArgoCD lives in the innermost vCluster (vc2) locally (README.md).
-    await applyDevStorageClasses();
     await installArgoCd();
     await installGitServer();
 
@@ -251,7 +222,7 @@ async function sync(): Promise<void> {
     // points at the in-cluster git server (self-managed ArgoCD would otherwise
     // be able to flip it to the prod URL).
     process.env.K8S_LOCAL = "1";
-    process.env.K8S_LOCAL_REPO_URL = GIT_SERVICE_URL;
+    process.env.K8S_LOCAL_REPO_URL = GIT_SERVER_SERVICE_URL;
     await applyBootstrapApplicationSet();
 
     // Force the ApplicationSet controller to re-read the pushed branch. The
@@ -270,7 +241,7 @@ async function sync(): Promise<void> {
     console.log(`
 ──────────────────────────────────────────────
 Local cluster ready.
-  repo:      ${GIT_SERVICE_URL}
+  repo:      ${GIT_SERVER_SERVICE_URL}
   branch:    ${BRANCH}
   watch:     kubectl -n argocd get applications -w
   portal:    kubectl -n argocd port-forward svc/argocd-server 8080:443
