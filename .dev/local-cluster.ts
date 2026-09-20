@@ -1,6 +1,7 @@
 import { $ } from "bun";
 import { join, resolve } from "node:path";
 import { createInterface } from "node:readline/promises";
+import { check, have, ok, text } from "./shell-utils";
 
 const ROOT = resolve(import.meta.dir, "..");
 const K3D_CLUSTER_NAME = "kirdev-dev-cluster";
@@ -20,28 +21,6 @@ const VCLUSTERS = [
 const args = process.argv.slice(2);
 const command = args[0];
 const yes = args.includes("--yes") || args.includes("-y");
-
-type ShellCmd = ReturnType<typeof $>;
-
-async function check(cmd: ShellCmd): Promise<void> {
-    const result = await cmd.nothrow();
-    if (result.exitCode !== 0) {
-        console.error("✗ command failed");
-        process.exit(1);
-    }
-}
-
-async function ok(cmd: ShellCmd): Promise<boolean> {
-    return (await cmd.quiet().nothrow()).exitCode === 0;
-}
-
-async function text(cmd: ShellCmd): Promise<string> {
-    return (await cmd.quiet().nothrow().text()).trim();
-}
-
-function have(cmd: string): Promise<boolean> {
-    return ok($`which ${cmd}`);
-}
 
 async function isDirty(): Promise<boolean> {
     return (await text($`git -C ${ROOT} status --porcelain`)) !== "";
