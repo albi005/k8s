@@ -193,9 +193,6 @@ async function up(): Promise<void> {
         console.log(`✓ k3d cluster ${K3D_CLUSTER_NAME} exists`);
     }
 
-    // vc1 is created on the k3d cluster, vc2 nested inside vc1. On a re-run the
-    // existing vCluster must be re-connected so the next one lands in the right
-    // parent.
     await check($`kubectl config use-context k3d-${K3D_CLUSTER_NAME}`);
     await applyDevStorageClasses();
     await ensureVcluster(VCLUSTERS[0]);
@@ -237,24 +234,10 @@ async function sync(): Promise<void> {
             .nothrow();
         await $`kubectl -n argocd rollout restart deployment/argocd-applicationset-controller`.quiet().nothrow();
     }
-
-    console.log(`
-──────────────────────────────────────────────
-Local cluster ready.
-  repo:      ${GIT_SERVER_SERVICE_URL}
-  branch:    ${GIT_SERVER_TARGET_BRANCH}
-  watch:     kubectl -n argocd get applications -w
-  portal:    kubectl -n argocd port-forward svc/argocd-server 8080:443
-  teardown:  bun run local-cluster:down
-──────────────────────────────────────────────`);
 }
 
 async function down(): Promise<void> {
-    if (await k3dClusterExists()) {
-        await check($`k3d cluster delete ${K3D_CLUSTER_NAME}`);
-    } else {
-        console.log(`k3d cluster ${K3D_CLUSTER_NAME} not found`);
-    }
+    await check($`k3d cluster delete ${K3D_CLUSTER_NAME}`);
 }
 
 const commands = { up, sync, down } as const;
