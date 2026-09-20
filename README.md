@@ -2,20 +2,42 @@ TODO: Update README TODO: is the resource request/limit bug not mentioned anywhe
 
 # Kir-Dev Kubernetes configuration
 
-## Bootstrapping
+## Running locally
 
 Install
+[docker](https://docs.docker.com/engine/install/),
 [kubectl](https://kubernetes.io/docs/tasks/tools/#kubectl),
-[k3d](https://k3d.io), and the [vCluster CLI](https://www.vcluster.com/install)
-(`nix-shell -p kubectl k3d vcluster` if you have Nix), plus
-[bun](https://bun.sh) and `helm`, then:
+[bun](https://bun.com/docs/installation),
+[k3d](https://k3d.io/stable/#installation),
+[helm](https://helm.sh/docs/intro/install),
+and [vcluster](https://www.vcluster.com/install):
+- Nix:
+  - install Docker (`virtualisation.docker.enable = true` on NixOS),
+  - then `nix-shell -p kubectl bun k3d helm vcluster`
+- Homebrew (untested):
+  - install Docker,
+  - then `brew install kubernetes-cli bun k3d helm vcluster`
+- Linux, WSL (untested):
+  ```bash
+  # Docker Engine (on WSL you can instead enable Docker Desktop's WSL integration)
+  curl -fsSL https://get.docker.com | sudo sh
+  sudo usermod -aG docker "$USER" # then re-login
+
+  curl -fsSL https://bun.sh/install | bash
+  curl -fsSL https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
+  curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+  case "$(uname -m)" in x86_64) arch=amd64 ;; aarch64) arch=arm64 ;; *) echo "unsupported arch" >&2; exit 1 ;; esac
+  kubectl_ver=$(curl -fsSL https://dl.k8s.io/release/stable.txt)
+  sudo curl -fsSL -o /usr/local/bin/kubectl "https://dl.k8s.io/release/${kubectl_ver}/bin/linux/${arch}/kubectl"
+  sudo chmod +x /usr/local/bin/kubectl
+  sudo curl -fsSL -o /usr/local/bin/vcluster "https://github.com/loft-sh/vcluster/releases/latest/download/vcluster-linux-${arch}"
+  sudo chmod +x /usr/local/bin/vcluster
+  ```
 
 ```bash
 git clone https://github.com/kir-dev/k8s
 cd k8s
 
-# create the k3d cluster + nested vClusters, an in-cluster git server,
-# install ArgoCD and the bootstrap ApplicationSet
 bun install
 bun run local-cluster:up
 
@@ -25,9 +47,6 @@ bun run local-cluster:sync
 # tear everything down
 bun run local-cluster:down
 ```
-
-`local-cluster:up` is idempotent for the cluster/vClusters and reproduces the manual steps that used to be documented
-here (see `PLAN.md` for the full flow).
 
 ## Adding a new app
 
