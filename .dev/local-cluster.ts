@@ -7,7 +7,7 @@ import { kubectlApplyCdk8sApp } from "./kubectl-utils.ts";
 const ROOT = resolve(import.meta.dir, "..");
 const K3D_CLUSTER_NAME = "kirdev-local-cluster";
 const K3S_IMAGE = "rancher/k3s:v1.35.0-k3s1";
-const GIT_SERVER_TARGET_BRANCH = "argocd-head";
+const GIT_SERVER_TARGET_BRANCH = "main";
 const GIT_SERVER_NAMESPACE = "argocd";
 const GIT_SERVER_SERVICE = "git-server";
 const GIT_SERVER_PROXY_LOCAL_PORT = 19418;
@@ -76,7 +76,7 @@ async function installGitServer(): Promise<void> {
 }
 
 /**
- * Push the current HEAD into the in-cluster bare repo as `argocd-head`.
+ * Push the current HEAD into the in-cluster bare repo as `main`.
  *
  * The local port-forward is the only path from the host into vc2, so the
  * cluster's own git daemon can't be reached directly.
@@ -144,8 +144,11 @@ async function up(): Promise<void> {
     await ensureVcluster(VCLUSTERS[0]);
     await ensureVcluster(VCLUSTERS[1]);
 
-    await installArgoCd();
+    const argocdInstallPromise = installArgoCd();
     await installGitServer();
+    await publishHead();
+    await argocdInstallPromise;
+    await kubectlApplyCdk8sApp(applicationSet);
 
     await sync();
 }
@@ -161,24 +164,11 @@ async function sync(): Promise<void> {
 
     await publishHead();
 
-    await kubectlApplyCdk8sApp(applicationSet);
-
-    // Force the ApplicationSet controller to re-read the pushed branch. The
-    // `apps` ApplicationSet is self-managed, so syncing its Application updates
-    // the generator; the child Applications follow.
-    if (await have("argocd")) {
-        await $`argocd app get application-set --refresh`.nothrow();
-        await $`argocd app sync application-set --prune`.nothrow();
-    } else {
-        await $`kubectl -n argocd annotate applicationset/apps argocd.argoproj.io/refresh=hard --overwrite`
-            .quiet()
-            .nothrow();
-        await $`kubectl -n argocd rollout restart deployment/argocd-applicationset-controller`.quiet().nothrow();
-    }
+    await $`kubectl -n argocd annotate applicationset/application-set argocd.argoproj.io/application-set-refresh=true --overwrite`;
 }
 
 async function down(): Promise<void> {
-    await check($`k3d cluster delete ${K3D_CLUSTER_NAME}`);
+    await $`k3d cluster delete ${K3D_CLUSTER_NAME}`;
 }
 
 const command = process.argv[2];
