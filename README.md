@@ -94,7 +94,7 @@ Create a new directory containing
   - `versions.ts`:
     ```ts
     export const versions = {
-        image: "https://github.com/kir-dev/myapp:0.0.1@sha256:aaaaaaaaaaaaaa",
+        image: "ghcr.io/kir-dev/myapp:0.0.1@sha256:aaaaaaaaaaaaaa",
     };
     ```
 - or `.yaml` files defining Kubernetes resources,

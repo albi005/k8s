@@ -2,7 +2,7 @@ import { ApplicationSet } from "../imports/argoproj.io";
 import * as environment from "../.dev/environment.ts";
 import { singletonApp } from "../.dev/cdk8s-utils.ts";
 
-export default singletonApp("argocd", (scope) => {
+export default singletonApp({ namespace: "argocd" }, (scope) => {
     new ApplicationSet(scope, "application-set", {
         metadata: {
             name: "application-set",
