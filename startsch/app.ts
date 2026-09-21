@@ -65,41 +65,52 @@ export default singletonApp({ namespace: "startsch", createNamespace: true }, (s
         //   ACCESS_SECRET_KEY:
     });
 
-    new barman.ObjectStore(scope, "startsch-backups", {
-        metadata: { name: "startsch-backups" },
-        spec: {
-            instanceSidecarConfiguration: {
-                resources: {
-                    limits: {
-                        cpu: barman.ObjectStoreSpecInstanceSidecarConfigurationResourcesLimits.fromString("1"),
-                        memory: barman.ObjectStoreSpecInstanceSidecarConfigurationResourcesLimits.fromString("512Mi"),
-                        "ephemeral-storage":
-                            barman.ObjectStoreSpecInstanceSidecarConfigurationResourcesLimits.fromString("500Mi"),
-                    },
-                    requests: {
-                        cpu: barman.ObjectStoreSpecInstanceSidecarConfigurationResourcesRequests.fromString("100m"),
-                        memory: barman.ObjectStoreSpecInstanceSidecarConfigurationResourcesRequests.fromString("128Mi"),
-                        "ephemeral-storage":
-                            barman.ObjectStoreSpecInstanceSidecarConfigurationResourcesRequests.fromString("100Mi"),
-                    },
-                },
-            },
-            configuration: {
-                destinationPath: "s3://startsch-backups/",
-                endpointUrl: "https://s3.eu-central-003.backblazeb2.com",
-                s3Credentials: {
-                    accessKeyId: { name: "startsch-backups-secrets", key: "ACCESS_KEY_ID" },
-                    secretAccessKey: { name: "startsch-backups-secrets", key: "ACCESS_SECRET_KEY" },
-                },
-                wal: {
-                    compression: barman.ObjectStoreSpecConfigurationWalCompression.GZIP,
-                    maxParallel: 8,
-                },
-            },
-        },
-    });
+    const bootstrapMode: "initdb" | "recovery" = environment.environment == "Production" ? "recovery" : "initdb";
+    // Set to false while restoring from a backup
+    const enableBackup = environment.environment == "Production";
 
-    new cnpg.Cluster(scope, "startsch-db", {
+    // Configure where the backups are
+    if (enableBackup) {
+        new barman.ObjectStore(scope, "startsch-backups", {
+            metadata: { name: "startsch-backups" },
+            spec: {
+                instanceSidecarConfiguration: {
+                    resources: {
+                        limits: {
+                            cpu: barman.ObjectStoreSpecInstanceSidecarConfigurationResourcesLimits.fromString("1"),
+                            memory: barman.ObjectStoreSpecInstanceSidecarConfigurationResourcesLimits.fromString(
+                                "512Mi",
+                            ),
+                            "ephemeral-storage":
+                                barman.ObjectStoreSpecInstanceSidecarConfigurationResourcesLimits.fromString("500Mi"),
+                        },
+                        requests: {
+                            cpu: barman.ObjectStoreSpecInstanceSidecarConfigurationResourcesRequests.fromString("100m"),
+                            memory: barman.ObjectStoreSpecInstanceSidecarConfigurationResourcesRequests.fromString(
+                                "128Mi",
+                            ),
+                            "ephemeral-storage":
+                                barman.ObjectStoreSpecInstanceSidecarConfigurationResourcesRequests.fromString("100Mi"),
+                        },
+                    },
+                },
+                configuration: {
+                    destinationPath: "s3://startsch-backups/",
+                    endpointUrl: "https://s3.eu-central-003.backblazeb2.com",
+                    s3Credentials: {
+                        accessKeyId: { name: "startsch-backups-secrets", key: "ACCESS_KEY_ID" },
+                        secretAccessKey: { name: "startsch-backups-secrets", key: "ACCESS_SECRET_KEY" },
+                    },
+                    wal: {
+                        compression: barman.ObjectStoreSpecConfigurationWalCompression.GZIP,
+                        maxParallel: 8,
+                    },
+                },
+            },
+        });
+    }
+
+    const clusterProps: cnpg.ClusterProps = {
         metadata: {
             name: "startsch-db",
             labels: {
@@ -141,57 +152,71 @@ export default singletonApp({ namespace: "startsch", createNamespace: true }, (s
                 size: "1.5Gi",
                 storageClass: "node-local-zfs",
             },
+        },
+    };
 
-            // Enable automatic backups (disable while restoring)
-            plugins: [
-                {
+    if (environment.environment == "Production") {
+        (clusterProps.spec.externalClusters ??= []).push(
+            {
+                name: "backblaze-backup",
+                plugin: {
                     name: "barman-cloud.cloudnative-pg.io",
-                    enabled: true, // needed otherwise ArgoCD complains
-                    isWalArchiver: true,
-                    parameters: { barmanObjectName: "startsch-backups" },
+                    enabled: true, // needed otherwise ArgoCD complains about being OutOfSync
+                    isWalArchiver: false, // needed otherwise ArgoCD complains about being OutOfSync
+                    parameters: { barmanObjectName: "startsch-backups", serverName: "startsch-db" },
                 },
-            ],
+            },
+        );
+    }
 
-            // Create a new database
-            // bootstrap: {
-            //     initdb: {
-            //         database: "startsch",
-            //         owner: "startsch",
-            //     },
-            // },
-
-            // Restore from a backup (leave after restoring finished)
-            bootstrap: {
-                recovery: {
-                    source: "backblaze-backup",
+    switch (bootstrapMode) {
+        case "initdb":
+            clusterProps.spec.bootstrap = {
+                initdb: {
                     database: "startsch",
                     owner: "startsch",
                 },
-            },
-            externalClusters: [
+            };
+            break;
+        case "recovery":
+            clusterProps.spec.bootstrap =
                 {
-                    name: "backblaze-backup",
-                    plugin: {
-                        name: "barman-cloud.cloudnative-pg.io",
-                        enabled: true, // needed otherwise ArgoCD complains about being OutOfSync
-                        isWalArchiver: false, // needed otherwise ArgoCD complains about being OutOfSync
-                        parameters: { barmanObjectName: "startsch-backups", serverName: "startsch-db" },
+                    recovery: {
+                        source: "backblaze-backup",
+                        database: "startsch",
+                        owner: "startsch",
                     },
-                },
-            ],
-        },
-    });
+                };
+            break;
+        default:
+            throw new Error();
+    }
 
-    new cnpg.ScheduledBackup(scope, "startsch-backup", {
-        metadata: { name: "startsch-backup" },
-        spec: {
-            cluster: { name: "startsch-db" },
-            schedule: "0 24 3 * * *", // At 3:24 every day
-            backupOwnerReference: cnpg.ScheduledBackupSpecBackupOwnerReference.SELF,
-            method: cnpg.ScheduledBackupSpecMethod.PLUGIN,
-            pluginConfiguration: { name: "barman-cloud.cloudnative-pg.io" },
-        },
-    });
+    if (enableBackup) {
+        (clusterProps.spec.plugins ??= []).push(
+            {
+                name: "barman-cloud.cloudnative-pg.io",
+                enabled: true, // needed otherwise ArgoCD complains
+                isWalArchiver: true,
+                parameters: { barmanObjectName: "startsch-backups" },
+            },
+        );
+    }
+
+    new cnpg.Cluster(scope, "startsch-db", clusterProps);
+
+    if (enableBackup) {
+        new cnpg.ScheduledBackup(scope, "startsch-backup", {
+            metadata: { name: "startsch-backup" },
+            spec: {
+                cluster: { name: "startsch-db" },
+                schedule: "0 24 3 * * *", // At 3:24 every day
+                backupOwnerReference: cnpg.ScheduledBackupSpecBackupOwnerReference.SELF,
+                method: cnpg.ScheduledBackupSpecMethod.PLUGIN,
+                pluginConfiguration: { name: "barman-cloud.cloudnative-pg.io" },
+            },
+        });
+    }
 
     new kube.KubeDeployment(scope, "startsch-deployment", {
         metadata: { name: "startsch", labels },
