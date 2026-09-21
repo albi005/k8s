@@ -47,7 +47,7 @@ export default singletonApp({ namespace: "ehk", createNamespace: true }, (scope)
                       PAYLOAD_SECRET: "local-development-secret",
                       S3_BUCKET: "ehk-media",
                       S3_ACCESS_KEY_ID: "local",
-                      S3_SECRET_ACCESS_KEY: "local",
+                      S3_SECRET_ACCESS_KEY: "localpass",
                       S3_REGION: "us-east-1",
                       S3_ENDPOINT: "http://ehk-minio:9000",
                   },
@@ -180,6 +180,122 @@ export default singletonApp({ namespace: "ehk", createNamespace: true }, (scope)
             },
         },
     });
+
+    if (environment.environment != "Production") {
+        // Local S3-compatible object storage for the `media` collection.
+        // Production uses an external bucket configured via `ehk-secrets`.
+        const minioLabels = { "app.kubernetes.io/name": "ehk-minio", "app.kubernetes.io/part-of": "ehk" };
+        new kube.KubeDeployment(scope, "ehk-minio", {
+            metadata: { name: "ehk-minio", labels: minioLabels },
+            spec: {
+                replicas: 1,
+                selector: { matchLabels: { "app.kubernetes.io/name": "ehk-minio" } },
+                template: {
+                    metadata: { labels: minioLabels },
+                    spec: {
+                        containers: [
+                            {
+                                name: "minio",
+                                image: versions.minio,
+                                imagePullPolicy: "IfNotPresent",
+                                args: ["server", "/data", "--console-address", ":9001"],
+                                env: [
+                                    {
+                                        name: "MINIO_ROOT_USER",
+                                        valueFrom: {
+                                            secretKeyRef: { name: "ehk-secrets", key: "S3_ACCESS_KEY_ID" },
+                                        },
+                                    },
+                                    {
+                                        name: "MINIO_ROOT_PASSWORD",
+                                        valueFrom: {
+                                            secretKeyRef: { name: "ehk-secrets", key: "S3_SECRET_ACCESS_KEY" },
+                                        },
+                                    },
+                                ],
+                                ports: [
+                                    { name: "api", containerPort: 9000 },
+                                    { name: "console", containerPort: 9001 },
+                                ],
+                                resources: {
+                                    requests: {
+                                        cpu: kube.Quantity.fromString("50m"),
+                                        memory: kube.Quantity.fromString("128Mi"),
+                                        "ephemeral-storage": kube.Quantity.fromString("0"),
+                                    },
+                                    limits: {
+                                        cpu: kube.Quantity.fromString("500m"),
+                                        memory: kube.Quantity.fromString("512Mi"),
+                                        "ephemeral-storage": kube.Quantity.fromString("500Mi"),
+                                    },
+                                },
+                                volumeMounts: [{ name: "data", mountPath: "/data" }],
+                            },
+                        ],
+                        volumes: [{ name: "data", emptyDir: {} }],
+                    },
+                },
+            },
+        });
+
+        new kube.KubeService(scope, "ehk-minio-service", {
+            metadata: { name: "ehk-minio", labels: minioLabels },
+            spec: {
+                selector: { "app.kubernetes.io/name": "ehk-minio" },
+                ports: [{ name: "http", port: 9000, targetPort: kube.IntOrString.fromNumber(9000) }],
+            },
+        });
+
+        new kube.KubeJob(scope, "ehk-minio-bucket", {
+            metadata: { name: "ehk-minio-bucket", labels: minioLabels },
+            spec: {
+                backoffLimit: 5,
+                template: {
+                    metadata: { labels: minioLabels },
+                    spec: {
+                        restartPolicy: "Never",
+                        containers: [
+                            {
+                                name: "create-bucket",
+                                image: versions.minioClient,
+                                imagePullPolicy: "IfNotPresent",
+                                command: ["/bin/sh", "-ec"],
+                                args: [
+                                    'until mc alias set local http://ehk-minio:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"; do sleep 2; done; mc mb --ignore-existing local/ehk-media',
+                                ],
+                                env: [
+                                    {
+                                        name: "MINIO_ROOT_USER",
+                                        valueFrom: {
+                                            secretKeyRef: { name: "ehk-secrets", key: "S3_ACCESS_KEY_ID" },
+                                        },
+                                    },
+                                    {
+                                        name: "MINIO_ROOT_PASSWORD",
+                                        valueFrom: {
+                                            secretKeyRef: { name: "ehk-secrets", key: "S3_SECRET_ACCESS_KEY" },
+                                        },
+                                    },
+                                ],
+                                resources: {
+                                    requests: {
+                                        cpu: kube.Quantity.fromString("10m"),
+                                        memory: kube.Quantity.fromString("16Mi"),
+                                        "ephemeral-storage": kube.Quantity.fromString("0"),
+                                    },
+                                    limits: {
+                                        cpu: kube.Quantity.fromString("100m"),
+                                        memory: kube.Quantity.fromString("64Mi"),
+                                        "ephemeral-storage": kube.Quantity.fromString("50Mi"),
+                                    },
+                                },
+                            },
+                        ],
+                    },
+                },
+            },
+        });
+    }
 
     new kube.KubeService(scope, "ehk-service", {
         metadata: { name: "ehk", labels },
