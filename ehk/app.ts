@@ -19,7 +19,10 @@ export default singletonApp({ namespace: "ehk", createNamespace: true }, (scope)
     };
 
     new kube.KubeConfigMap(scope, "ehk-config", {
-        metadata: { name: "ehk-config" },
+        metadata: {
+            name: "ehk-config",
+            annotations: { "argocd.argoproj.io/sync-wave": "-25" },
+        },
         data: {
             NODE_ENV: "production",
             NEXT_TELEMETRY_DISABLED: "1",
@@ -34,7 +37,10 @@ export default singletonApp({ namespace: "ehk", createNamespace: true }, (scope)
     //   S3_REGION:
     //   S3_ENDPOINT:
     new kube.KubeSecret(scope, "ehk-secrets", {
-        metadata: { name: "ehk-secrets" },
+        metadata: {
+            name: "ehk-secrets",
+            annotations: { "argocd.argoproj.io/sync-wave": "-25" },
+        },
         ...(environment.environment != "Production"
             ? {
                   stringData: {
