@@ -22,6 +22,15 @@ helmCharts:
           # https://argo-cd.readthedocs.io/en/stable/user-guide/kustomize/#kustomizing-helm-charts
           kustomize.buildOptions: "--enable-helm"
 
+        params:
+          # Serialize manifest generation. cdk8s apps are allowed to be
+          # processed concurrently (ArgoCD does so for all non-kustomize
+          # sources), but they share the bun/cdk8s caches and each
+          # `cdk8s:import` fans out to 16 processes — concurrent generations
+          # race on the cache and can OOM the sidecar.
+          # https://argo-cd.readthedocs.io/en/stable/operator-manual/argocd-cmd-params-cm.yaml
+          reposerver.parallelism.limit: "1"
+
         # Configure our Config Management Plugin for cdk8s apps
         # https://argo-cd.readthedocs.io/en/stable/operator-manual/config-management-plugins/
         cmp:
