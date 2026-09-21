@@ -56,7 +56,8 @@ helmCharts:
                 command: [ bash, -c ]
                 args:
                   - |
-                    cat ../dist/$ARGOCD_APP_NAME/*.k8s.yaml
+                    # put a --- between files
+                    awk 'FNR==1 && NR!=1 {print "---"} {print}' ../dist/$ARGOCD_APP_NAME/*.k8s.yaml
 
       global:
         networkPolicy:
