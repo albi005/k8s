@@ -35,8 +35,9 @@ helmCharts:
                 args:
                   - |
                     set -e
-                    export BUN_INSTALL_CACHE_DIR=/cache/bun
-                    export CDK8S_IMPORT_CACHE=/cache/cdk8s-imports
+                    # Use the same volume as where the git repo is, so that node_modules can be hard-linked instead of copied.
+                    export BUN_INSTALL_CACHE_DIR=/tmp/bun
+                    export CDK8S_IMPORT_CACHE=/tmp/cdk8s-imports
 
                     cd ..
                     bun install --frozen-lockfile
@@ -172,17 +173,12 @@ helmCharts:
               # Do not share the repo-server's /tmp volume (path traversal mitigation).
               - mountPath: /tmp
                 name: cmp-tmp
-              # Persistent-ish cache for `bun install` + `cdk8s:import`.
-              - mountPath: /cache
-                name: cmp-cache
 
         volumes:
           - name: argocd-cmp-cm
             configMap:
               name: argocd-cmp-cm
           - name: cmp-tmp
-            emptyDir: { }
-          - name: cmp-cache
             emptyDir: { }
 
         resources:
