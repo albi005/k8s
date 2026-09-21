@@ -48,7 +48,7 @@ async function vclusterExists(name: string): Promise<boolean> {
 /** Create the vCluster on the current context, or connect to it if it exists. */
 async function ensureVcluster(vcluster: (typeof VCLUSTERS)[number]): Promise<void> {
     if (!(await vclusterExists(vcluster.name))) {
-        await check($`vcluster create ${vcluster.name} -n ${vcluster.namespace} -f ${vcluster.file}`);
+        await check($`vcluster create ${vcluster.name} -n ${vcluster.namespace} -f ${vcluster.file} < /dev/null`); // < /dev/null stops dumb questions
         return;
     }
     console.log(`✓ vcluster ${vcluster.name} exists`);
