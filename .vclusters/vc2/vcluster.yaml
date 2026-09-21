@@ -70,7 +70,7 @@ policies:
       requests.storage: 600Gi
       memory-ssd.storageclass.storage.k8s.io/requests.storage: 100Gi
       memory-ssd-rwx.storageclass.storage.k8s.io/requests.storage: 100Gi
-      node-local-zfs.storageclass.storage.k8s.io/requests.storage: 0Gi
+      node-local-zfs.storageclass.storage.k8s.io/requests.storage: 100Gi # might be wrong (probably is wrong)
       memory-hdd.storageclass.storage.k8s.io/requests.storage: 500Gi
 
       services.nodeports: 17
