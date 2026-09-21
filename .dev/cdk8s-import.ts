@@ -4,10 +4,35 @@
  */
 import { $ } from "bun";
 import { createHash } from "node:crypto";
-import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, symlinkSync } from "node:fs";
+import { cpSync, existsSync, linkSync, mkdirSync, readFileSync, readdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
 import { parse as parseYaml } from "yaml";
+
+/**
+ * Recreate `srcDir` at `destDir`, hardlinking files where the filesystem allows
+ * it (same inode, so no extra disk writes) and copying otherwise.
+ *
+ * Hardlinks are transparent to module resolution — unlike symlinks, the file
+ * keeps the path it was opened through, so the generated imports resolve
+ * `cdk8s`/`constructs` from the project's `node_modules`.
+ */
+function linkOrCopyTree(srcDir: string, destDir: string): void {
+    mkdirSync(destDir, { recursive: true });
+    for (const entry of readdirSync(srcDir, { withFileTypes: true })) {
+        const src = join(srcDir, entry.name);
+        const dest = join(destDir, entry.name);
+        if (entry.isDirectory()) {
+            linkOrCopyTree(src, dest);
+        } else {
+            try {
+                linkSync(src, dest);
+            } catch {
+                cpSync(src, dest);
+            }
+        }
+    }
+}
 
 const cacheDir = process.env.CDK8S_IMPORT_CACHE ?? join(homedir(), ".cache", "cdk8s-imports");
 
@@ -20,7 +45,12 @@ const cdk8sConfigHash = createHash("sha256").update(readFileSync("cdk8s.yaml")).
 const cachedImportsDir = join(cacheDir, "out", cdk8sConfigHash, "imports");
 if (existsSync(cachedImportsDir)) {
     rmSync(importsDir, { recursive: true, force: true });
-    symlinkSync(cachedImportsDir, importsDir, "dir");
+    // Hardlink (not symlink) into the project: symlinks make Bun resolve the
+    // generated files' `cdk8s`/`constructs` imports against the cache path,
+    // where there is no `node_modules`, so it silently auto-installs a wrong
+    // cdk8s version. Hardlinks keep the project path, and share inodes so the
+    // import cache costs no extra disk writes.
+    linkOrCopyTree(cachedImportsDir, importsDir);
     process.exit(0);
 }
 

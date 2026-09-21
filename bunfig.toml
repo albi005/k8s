@@ -1,0 +1,5 @@
+[install]
+# https://bun.com/docs/runtime/bunfig#install-auto
+# Disable automatically installing dependencies when a .ts script does not have a node_modules.
+# The default made debugging an issue with symlinked .ts files *very* painful.
+auto = "disable"
