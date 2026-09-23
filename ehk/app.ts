@@ -4,10 +4,10 @@
 //
 // Next.js + Payload CMS (Postgres) application.
 
-import { ApiObject } from "cdk8s";
 import * as kube from "../imports/k8s";
 import * as environment from "../.dev/environment.ts";
 import * as cnpg from "../imports/postgresql.cnpg.io.ts";
+import * as seaweed from "../imports/seaweed.seaweedfs.com.ts";
 import { versions } from "./versions.ts";
 import { singletonApp } from "../.dev/cdk8s-utils.ts";
 
@@ -180,30 +180,56 @@ export default singletonApp({ namespace: "ehk", createNamespace: true }, (scope)
     // Self-hosted S3-compatible object storage for the `media` collection,
     // managed by the seaweedfs-operator (see the `seaweedfs-operator` app).
     // S3 and IAM share the filer service on port 8333.
+    //
+    // The image is kept here (not in versions.ts, which Renovate owns) because
+    // it must track the operator's supported SeaweedFS version. This matches
+    // the dependency pinned by seaweedfs-operator 1.0.39.
+    const seaweedfsImage = "chrislusf/seaweedfs:4.47";
     const seaweedLabels = { "app.kubernetes.io/name": "ehk-seaweed", "app.kubernetes.io/part-of": "ehk" };
     const storageClassName = "node-local-zfs";
-    const persistence = (storage: string) =>
-        ({ enabled: true, storageClassName, resources: { requests: { storage } } }) as const;
 
-    new ApiObject(scope, "ehk-seaweed", {
-        apiVersion: "seaweed.seaweedfs.com/v1",
-        kind: "Seaweed",
+    new seaweed.Seaweed(scope, "ehk-seaweed", {
         metadata: { name: "ehk-seaweed", labels: seaweedLabels },
         spec: {
-            image: versions.seaweedfs,
+            image: seaweedfsImage,
             imagePullPolicy: "IfNotPresent",
             volumeServerDiskCount: 1,
             master: {
                 replicas: 1,
-                persistence: persistence("1Gi"),
-                requests: { cpu: "50m", memory: "128Mi", "ephemeral-storage": "0" },
-                limits: { cpu: "500m", memory: "512Mi", "ephemeral-storage": "200Mi" },
+                persistence: {
+                    enabled: true,
+                    storageClassName,
+                    resources: {
+                        requests: {
+                            storage: seaweed.SeaweedSpecMasterPersistenceResourcesRequests.fromString("1Gi"),
+                        },
+                    },
+                },
+                requests: {
+                    cpu: seaweed.SeaweedSpecMasterRequests.fromString("50m"),
+                    memory: seaweed.SeaweedSpecMasterRequests.fromString("128Mi"),
+                    "ephemeral-storage": seaweed.SeaweedSpecMasterRequests.fromString("0"),
+                },
+                limits: {
+                    cpu: seaweed.SeaweedSpecMasterLimits.fromString("500m"),
+                    memory: seaweed.SeaweedSpecMasterLimits.fromString("512Mi"),
+                    "ephemeral-storage": seaweed.SeaweedSpecMasterLimits.fromString("200Mi"),
+                },
             },
             volume: {
                 replicas: 1,
                 storageClassName,
-                requests: { storage: "2Gi", cpu: "50m", memory: "128Mi", "ephemeral-storage": "0" },
-                limits: { cpu: "500m", memory: "512Mi", "ephemeral-storage": "500Mi" },
+                requests: {
+                    storage: seaweed.SeaweedSpecVolumeRequests.fromString("2Gi"),
+                    cpu: seaweed.SeaweedSpecVolumeRequests.fromString("50m"),
+                    memory: seaweed.SeaweedSpecVolumeRequests.fromString("128Mi"),
+                    "ephemeral-storage": seaweed.SeaweedSpecVolumeRequests.fromString("0"),
+                },
+                limits: {
+                    cpu: seaweed.SeaweedSpecVolumeLimits.fromString("500m"),
+                    memory: seaweed.SeaweedSpecVolumeLimits.fromString("512Mi"),
+                    "ephemeral-storage": seaweed.SeaweedSpecVolumeLimits.fromString("500Mi"),
+                },
             },
             filer: {
                 replicas: 1,
@@ -212,25 +238,37 @@ export default singletonApp({ namespace: "ehk", createNamespace: true }, (scope)
                 // IAM objects created through the API (and the CRDs below) need
                 // write access; without this the operator cannot register them.
                 extraArgs: ["-s3.iam.readOnly=false"],
-                persistence: persistence("1Gi"),
-                requests: { cpu: "50m", memory: "128Mi", "ephemeral-storage": "0" },
-                limits: { cpu: "500m", memory: "512Mi", "ephemeral-storage": "200Mi" },
+                persistence: {
+                    enabled: true,
+                    storageClassName,
+                    resources: {
+                        requests: {
+                            storage: seaweed.SeaweedSpecFilerPersistenceResourcesRequests.fromString("1Gi"),
+                        },
+                    },
+                },
+                requests: {
+                    cpu: seaweed.SeaweedSpecFilerRequests.fromString("50m"),
+                    memory: seaweed.SeaweedSpecFilerRequests.fromString("128Mi"),
+                    "ephemeral-storage": seaweed.SeaweedSpecFilerRequests.fromString("0"),
+                },
+                limits: {
+                    cpu: seaweed.SeaweedSpecFilerLimits.fromString("500m"),
+                    memory: seaweed.SeaweedSpecFilerLimits.fromString("512Mi"),
+                    "ephemeral-storage": seaweed.SeaweedSpecFilerLimits.fromString("200Mi"),
+                },
             },
         },
     });
 
     // S3 identity and credentials. The operator generates the key pair into the
     // `ehk-seaweed-s3` secret (keys `accessKey`/`secretKey`), which the app mounts.
-    new ApiObject(scope, "ehk-seaweed-identity", {
-        apiVersion: "seaweed.seaweedfs.com/v1",
-        kind: "S3Identity",
+    new seaweed.S3Identity(scope, "ehk-seaweed-identity", {
         metadata: { name: "ehk", labels: seaweedLabels },
         spec: { seaweedRef: { name: "ehk-seaweed" } },
     });
 
-    new ApiObject(scope, "ehk-seaweed-credentials", {
-        apiVersion: "seaweed.seaweedfs.com/v1",
-        kind: "S3Credentials",
+    new seaweed.S3Credentials(scope, "ehk-seaweed-credentials", {
         metadata: { name: "ehk-seaweed-credentials", labels: seaweedLabels },
         spec: {
             seaweedRef: { name: "ehk-seaweed" },
@@ -239,22 +277,18 @@ export default singletonApp({ namespace: "ehk", createNamespace: true }, (scope)
         },
     });
 
-    new ApiObject(scope, "ehk-media-bucket", {
-        apiVersion: "seaweed.seaweedfs.com/v1",
-        kind: "Bucket",
+    new seaweed.Bucket(scope, "ehk-media-bucket", {
         metadata: { name: "ehk-media", labels: seaweedLabels },
         spec: { clusterRef: { name: "ehk-seaweed" } },
     });
 
-    new ApiObject(scope, "ehk-media-policy", {
-        apiVersion: "seaweed.seaweedfs.com/v1",
-        kind: "S3Policy",
+    new seaweed.S3Policy(scope, "ehk-media-policy", {
         metadata: { name: "ehk-media", labels: seaweedLabels },
         spec: {
             seaweedRef: { name: "ehk-seaweed" },
             statements: [
                 {
-                    effect: "Allow",
+                    effect: seaweed.S3PolicySpecStatementsEffect.ALLOW,
                     actions: ["s3:GetObject", "s3:PutObject", "s3:DeleteObject", "s3:ListBucket"],
                     resources: ["ehk-media", "ehk-media/*"],
                 },
@@ -262,14 +296,12 @@ export default singletonApp({ namespace: "ehk", createNamespace: true }, (scope)
         },
     });
 
-    new ApiObject(scope, "ehk-media-policy-binding", {
-        apiVersion: "seaweed.seaweedfs.com/v1",
-        kind: "S3PolicyBinding",
+    new seaweed.S3PolicyBinding(scope, "ehk-media-policy-binding", {
         metadata: { name: "ehk-media", labels: seaweedLabels },
         spec: {
             seaweedRef: { name: "ehk-seaweed" },
             policyRef: { name: "ehk-media" },
-            subjects: [{ kind: "S3Identity", name: "ehk" }],
+            subjects: [{ kind: seaweed.S3PolicyBindingSpecSubjectsKind.S3_IDENTITY, name: "ehk" }],
         },
     });
 

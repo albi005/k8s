@@ -15,13 +15,30 @@ imports:
   - helm:https://open-telemetry.github.io/opentelemetry-helm-charts/opentelemetry-collector@0.143.0
   - helm:https://seaweedfs.github.io/seaweedfs-operator/seaweedfs-operator@0.1.42
 
-  # NOTE: You can only have one .yaml CRD file per API group (like networking.k8s.io),
-  # as they don't get merged, instead the new one replaces the old one.
-  # https://github.com/cdk8s-team/cdk8s-cli/issues/3797
+  # cdk8s-cli normally only allows one CRD file per API group, so multiple
+  # files in a group overwrite each other. `.dev/cdk8s-import.ts` patches the
+  # cli to aggregate them.
+  # Issue: https://github.com/cdk8s-team/cdk8s-cli/issues/3797
+  # Open PR: https://github.com/cdk8s-team/cdk8s-cli/pull/3798
   - https://raw.githubusercontent.com/argoproj/argo-cd/v3.2.5/manifests/install.yaml
   - https://github.com/cert-manager/cert-manager/releases/download/v1.19.2/cert-manager.crds.yaml
   - https://raw.githubusercontent.com/cloudnative-pg/cloudnative-pg/v1.28.0/releases/cnpg-1.28.0.yaml
   - https://raw.githubusercontent.com/cloudnative-pg/plugin-barman-cloud/v0.10.0/config/crd/bases/barmancloud.cnpg.io_objectstores.yaml
   - https://github.com/prometheus-operator/prometheus-operator/releases/download/v0.88.0/bundle.yaml
   - https://raw.githubusercontent.com/traefik/traefik/v3.6.7/docs/content/reference/dynamic-configuration/kubernetes-crd-definition-v1.yml
-  
+
+  # SeaweedFS
+  - https://raw.githubusercontent.com/seaweedfs/seaweedfs-operator/1.0.39/config/crd/bases/seaweed.seaweedfs.com_adminscripts.yaml
+  - https://raw.githubusercontent.com/seaweedfs/seaweedfs-operator/1.0.39/config/crd/bases/seaweed.seaweedfs.com_bucketlifecyclepolicies.yaml
+  - https://raw.githubusercontent.com/seaweedfs/seaweedfs-operator/1.0.39/config/crd/bases/seaweed.seaweedfs.com_buckets.yaml
+  - https://raw.githubusercontent.com/seaweedfs/seaweedfs-operator/1.0.39/config/crd/bases/seaweed.seaweedfs.com_resourcereferencegrants.yaml
+  - https://raw.githubusercontent.com/seaweedfs/seaweedfs-operator/1.0.39/config/crd/bases/seaweed.seaweedfs.com_s3credentials.yaml
+  - https://raw.githubusercontent.com/seaweedfs/seaweedfs-operator/1.0.39/config/crd/bases/seaweed.seaweedfs.com_s3identities.yaml
+  - https://raw.githubusercontent.com/seaweedfs/seaweedfs-operator/1.0.39/config/crd/bases/seaweed.seaweedfs.com_s3oidcproviders.yaml
+  - https://raw.githubusercontent.com/seaweedfs/seaweedfs-operator/1.0.39/config/crd/bases/seaweed.seaweedfs.com_s3policies.yaml
+  - https://raw.githubusercontent.com/seaweedfs/seaweedfs-operator/1.0.39/config/crd/bases/seaweed.seaweedfs.com_s3policybindings.yaml
+  - https://raw.githubusercontent.com/seaweedfs/seaweedfs-operator/1.0.39/config/crd/bases/seaweed.seaweedfs.com_seaweedbackups.yaml
+  - https://raw.githubusercontent.com/seaweedfs/seaweedfs-operator/1.0.39/config/crd/bases/seaweed.seaweedfs.com_seaweedcsidrivers.yaml
+  - https://raw.githubusercontent.com/seaweedfs/seaweedfs-operator/1.0.39/config/crd/bases/seaweed.seaweedfs.com_seaweedrestores.yaml
+  - https://raw.githubusercontent.com/seaweedfs/seaweedfs-operator/1.0.39/config/crd/bases/seaweed.seaweedfs.com_seaweeds.yaml
+

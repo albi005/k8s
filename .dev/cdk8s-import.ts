@@ -58,11 +58,23 @@ if (existsSync(cachedImportsDir)) {
 rmSync(importsDir, { recursive: true, force: true });
 const started = Date.now();
 
-const shellOutputs = await Promise.all(cdk8sImports.map((spec) => $`bun .dev/cdk8s-import-one.ts ${spec}`.nothrow()));
+// cdk8s-cli writes one module per API group, so CRDs spread over several files
+// in the same group overwrite each other unless they are imported together.
+// Aggregate every raw manifest import into one CRD importer (patched cli) and
+// run the rest (k8s + helm) in parallel.
+const isCrd = (spec: string) => !spec.startsWith("helm:") && !spec.startsWith("k8s@");
+const crdSources = cdk8sImports.filter(isCrd);
+const otherImports = cdk8sImports.filter((spec) => !isCrd(spec));
+
+const [otherOutputs, crdOutput] = await Promise.all([
+    Promise.all(otherImports.map((spec) => $`bun .dev/cdk8s-import-one.ts ${spec}`.nothrow())),
+    crdSources.length > 0 ? $`bun .dev/cdk8s-import-crds.ts ${crdSources}`.nothrow() : Promise.resolve(null),
+]);
+const shellOutputs = [...otherOutputs, ...(crdOutput ? [crdOutput] : [])];
 
 const failed = shellOutputs.filter((result) => result.exitCode !== 0).length;
 const wall = ((Date.now() - started) / 1000).toFixed(1);
-console.error(`${cdk8sImports.length - failed}/${cdk8sImports.length} imports OK in ${wall}s`);
+console.error(`${shellOutputs.length - failed}/${shellOutputs.length} imports OK in ${wall}s`);
 if (failed) process.exit(1);
 
 // Cache
