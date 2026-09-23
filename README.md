@@ -136,7 +136,7 @@ ArgoCD checks each top-level directory except the ones starting with a `.`. If i
 
 ## Bootstrapping the production cluster
 
-Given `kubectl config current-context` == `vc-kirdev`, installs the inner vCluster, Argo CD and the ApplicationSet:
+Given `kubectl config current-context` == `vc-kirdev`, the following installs the inner vCluster, Argo CD and the ApplicationSet.
 
 ```bash
 bun install
