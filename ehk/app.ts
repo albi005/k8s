@@ -4,6 +4,7 @@
 //
 // Next.js + Payload CMS (Postgres) application.
 
+import { ApiObject } from "cdk8s";
 import * as kube from "../imports/k8s";
 import * as environment from "../.dev/environment.ts";
 import * as cnpg from "../imports/postgresql.cnpg.io.ts";
@@ -26,16 +27,16 @@ export default singletonApp({ namespace: "ehk", createNamespace: true }, (scope)
         data: {
             NODE_ENV: "production",
             NEXT_TELEMETRY_DISABLED: "1",
+            S3_BUCKET: "ehk-media",
+            S3_REGION: "us-east-1",
+            S3_ENDPOINT: "http://ehk-seaweed-filer:8333",
         },
     });
 
     // Set manually in production:
     //   PAYLOAD_SECRET:
-    //   S3_BUCKET:
-    //   S3_ACCESS_KEY_ID:
-    //   S3_SECRET_ACCESS_KEY:
-    //   S3_REGION:
-    //   S3_ENDPOINT:
+    // S3 credentials are managed by the seaweedfs-operator in the
+    // `ehk-seaweed-s3` secret (see the Seaweed cluster below).
     new kube.KubeSecret(scope, "ehk-secrets", {
         metadata: {
             name: "ehk-secrets",
@@ -45,11 +46,6 @@ export default singletonApp({ namespace: "ehk", createNamespace: true }, (scope)
             ? {
                   stringData: {
                       PAYLOAD_SECRET: "local-development-secret",
-                      S3_BUCKET: "ehk-media",
-                      S3_ACCESS_KEY_ID: "local",
-                      S3_SECRET_ACCESS_KEY: "localpass",
-                      S3_REGION: "us-east-1",
-                      S3_ENDPOINT: "http://ehk-minio:9000",
                   },
               }
             : {}),
@@ -181,121 +177,101 @@ export default singletonApp({ namespace: "ehk", createNamespace: true }, (scope)
         },
     });
 
-    if (environment.environment != "Production") {
-        // Local S3-compatible object storage for the `media` collection.
-        // Production uses an external bucket configured via `ehk-secrets`.
-        const minioLabels = { "app.kubernetes.io/name": "ehk-minio", "app.kubernetes.io/part-of": "ehk" };
-        new kube.KubeDeployment(scope, "ehk-minio", {
-            metadata: { name: "ehk-minio", labels: minioLabels },
-            spec: {
+    // Self-hosted S3-compatible object storage for the `media` collection,
+    // managed by the seaweedfs-operator (see the `seaweedfs-operator` app).
+    // S3 and IAM share the filer service on port 8333.
+    const seaweedLabels = { "app.kubernetes.io/name": "ehk-seaweed", "app.kubernetes.io/part-of": "ehk" };
+    const storageClassName = "node-local-zfs";
+    const persistence = (storage: string) =>
+        ({ enabled: true, storageClassName, resources: { requests: { storage } } }) as const;
+
+    new ApiObject(scope, "ehk-seaweed", {
+        apiVersion: "seaweed.seaweedfs.com/v1",
+        kind: "Seaweed",
+        metadata: { name: "ehk-seaweed", labels: seaweedLabels },
+        spec: {
+            image: versions.seaweedfs,
+            imagePullPolicy: "IfNotPresent",
+            volumeServerDiskCount: 1,
+            master: {
                 replicas: 1,
-                selector: { matchLabels: { "app.kubernetes.io/name": "ehk-minio" } },
-                template: {
-                    metadata: { labels: minioLabels },
-                    spec: {
-                        containers: [
-                            {
-                                name: "minio",
-                                image: versions.minio,
-                                imagePullPolicy: "IfNotPresent",
-                                args: ["server", "/data", "--console-address", ":9001"],
-                                env: [
-                                    {
-                                        name: "MINIO_ROOT_USER",
-                                        valueFrom: {
-                                            secretKeyRef: { name: "ehk-secrets", key: "S3_ACCESS_KEY_ID" },
-                                        },
-                                    },
-                                    {
-                                        name: "MINIO_ROOT_PASSWORD",
-                                        valueFrom: {
-                                            secretKeyRef: { name: "ehk-secrets", key: "S3_SECRET_ACCESS_KEY" },
-                                        },
-                                    },
-                                ],
-                                ports: [
-                                    { name: "api", containerPort: 9000 },
-                                    { name: "console", containerPort: 9001 },
-                                ],
-                                resources: {
-                                    requests: {
-                                        cpu: kube.Quantity.fromString("50m"),
-                                        memory: kube.Quantity.fromString("128Mi"),
-                                        "ephemeral-storage": kube.Quantity.fromString("0"),
-                                    },
-                                    limits: {
-                                        cpu: kube.Quantity.fromString("500m"),
-                                        memory: kube.Quantity.fromString("512Mi"),
-                                        "ephemeral-storage": kube.Quantity.fromString("500Mi"),
-                                    },
-                                },
-                                volumeMounts: [{ name: "data", mountPath: "/data" }],
-                            },
-                        ],
-                        volumes: [{ name: "data", emptyDir: {} }],
-                    },
-                },
+                persistence: persistence("1Gi"),
+                requests: { cpu: "50m", memory: "128Mi", "ephemeral-storage": "0" },
+                limits: { cpu: "500m", memory: "512Mi", "ephemeral-storage": "200Mi" },
             },
-        });
+            volume: {
+                replicas: 1,
+                storageClassName,
+                requests: { storage: "2Gi", cpu: "50m", memory: "128Mi", "ephemeral-storage": "0" },
+                limits: { cpu: "500m", memory: "512Mi", "ephemeral-storage": "500Mi" },
+            },
+            filer: {
+                replicas: 1,
+                iam: true,
+                s3: { enabled: true },
+                // IAM objects created through the API (and the CRDs below) need
+                // write access; without this the operator cannot register them.
+                extraArgs: ["-s3.iam.readOnly=false"],
+                persistence: persistence("1Gi"),
+                requests: { cpu: "50m", memory: "128Mi", "ephemeral-storage": "0" },
+                limits: { cpu: "500m", memory: "512Mi", "ephemeral-storage": "200Mi" },
+            },
+        },
+    });
 
-        new kube.KubeService(scope, "ehk-minio-service", {
-            metadata: { name: "ehk-minio", labels: minioLabels },
-            spec: {
-                selector: { "app.kubernetes.io/name": "ehk-minio" },
-                ports: [{ name: "http", port: 9000, targetPort: kube.IntOrString.fromNumber(9000) }],
-            },
-        });
+    // S3 identity and credentials. The operator generates the key pair into the
+    // `ehk-seaweed-s3` secret (keys `accessKey`/`secretKey`), which the app mounts.
+    new ApiObject(scope, "ehk-seaweed-identity", {
+        apiVersion: "seaweed.seaweedfs.com/v1",
+        kind: "S3Identity",
+        metadata: { name: "ehk", labels: seaweedLabels },
+        spec: { seaweedRef: { name: "ehk-seaweed" } },
+    });
 
-        new kube.KubeJob(scope, "ehk-minio-bucket", {
-            metadata: { name: "ehk-minio-bucket", labels: minioLabels },
-            spec: {
-                backoffLimit: 5,
-                template: {
-                    metadata: { labels: minioLabels },
-                    spec: {
-                        restartPolicy: "Never",
-                        containers: [
-                            {
-                                name: "create-bucket",
-                                image: versions.minioClient,
-                                imagePullPolicy: "IfNotPresent",
-                                command: ["/bin/sh", "-ec"],
-                                args: [
-                                    'until mc alias set local http://ehk-minio:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"; do sleep 2; done; mc mb --ignore-existing local/ehk-media',
-                                ],
-                                env: [
-                                    {
-                                        name: "MINIO_ROOT_USER",
-                                        valueFrom: {
-                                            secretKeyRef: { name: "ehk-secrets", key: "S3_ACCESS_KEY_ID" },
-                                        },
-                                    },
-                                    {
-                                        name: "MINIO_ROOT_PASSWORD",
-                                        valueFrom: {
-                                            secretKeyRef: { name: "ehk-secrets", key: "S3_SECRET_ACCESS_KEY" },
-                                        },
-                                    },
-                                ],
-                                resources: {
-                                    requests: {
-                                        cpu: kube.Quantity.fromString("10m"),
-                                        memory: kube.Quantity.fromString("16Mi"),
-                                        "ephemeral-storage": kube.Quantity.fromString("0"),
-                                    },
-                                    limits: {
-                                        cpu: kube.Quantity.fromString("100m"),
-                                        memory: kube.Quantity.fromString("64Mi"),
-                                        "ephemeral-storage": kube.Quantity.fromString("50Mi"),
-                                    },
-                                },
-                            },
-                        ],
-                    },
+    new ApiObject(scope, "ehk-seaweed-credentials", {
+        apiVersion: "seaweed.seaweedfs.com/v1",
+        kind: "S3Credentials",
+        metadata: { name: "ehk-seaweed-credentials", labels: seaweedLabels },
+        spec: {
+            seaweedRef: { name: "ehk-seaweed" },
+            identityRef: { name: "ehk" },
+            secretRef: { name: "ehk-seaweed-s3" },
+        },
+    });
+
+    new ApiObject(scope, "ehk-media-bucket", {
+        apiVersion: "seaweed.seaweedfs.com/v1",
+        kind: "Bucket",
+        metadata: { name: "ehk-media", labels: seaweedLabels },
+        spec: { clusterRef: { name: "ehk-seaweed" } },
+    });
+
+    new ApiObject(scope, "ehk-media-policy", {
+        apiVersion: "seaweed.seaweedfs.com/v1",
+        kind: "S3Policy",
+        metadata: { name: "ehk-media", labels: seaweedLabels },
+        spec: {
+            seaweedRef: { name: "ehk-seaweed" },
+            statements: [
+                {
+                    effect: "Allow",
+                    actions: ["s3:GetObject", "s3:PutObject", "s3:DeleteObject", "s3:ListBucket"],
+                    resources: ["ehk-media", "ehk-media/*"],
                 },
-            },
-        });
-    }
+            ],
+        },
+    });
+
+    new ApiObject(scope, "ehk-media-policy-binding", {
+        apiVersion: "seaweed.seaweedfs.com/v1",
+        kind: "S3PolicyBinding",
+        metadata: { name: "ehk-media", labels: seaweedLabels },
+        spec: {
+            seaweedRef: { name: "ehk-seaweed" },
+            policyRef: { name: "ehk-media" },
+            subjects: [{ kind: "S3Identity", name: "ehk" }],
+        },
+    });
 
     new kube.KubeService(scope, "ehk-service", {
         metadata: { name: "ehk", labels },
@@ -330,24 +306,12 @@ export default singletonApp({ namespace: "ehk", createNamespace: true }, (scope)
                                     valueFrom: { secretKeyRef: { name: "ehk-secrets", key: "PAYLOAD_SECRET" } },
                                 },
                                 {
-                                    name: "S3_BUCKET",
-                                    valueFrom: { secretKeyRef: { name: "ehk-secrets", key: "S3_BUCKET" } },
-                                },
-                                {
                                     name: "S3_ACCESS_KEY_ID",
-                                    valueFrom: { secretKeyRef: { name: "ehk-secrets", key: "S3_ACCESS_KEY_ID" } },
+                                    valueFrom: { secretKeyRef: { name: "ehk-seaweed-s3", key: "accessKey" } },
                                 },
                                 {
                                     name: "S3_SECRET_ACCESS_KEY",
-                                    valueFrom: { secretKeyRef: { name: "ehk-secrets", key: "S3_SECRET_ACCESS_KEY" } },
-                                },
-                                {
-                                    name: "S3_REGION",
-                                    valueFrom: { secretKeyRef: { name: "ehk-secrets", key: "S3_REGION" } },
-                                },
-                                {
-                                    name: "S3_ENDPOINT",
-                                    valueFrom: { secretKeyRef: { name: "ehk-secrets", key: "S3_ENDPOINT" } },
+                                    valueFrom: { secretKeyRef: { name: "ehk-seaweed-s3", key: "secretKey" } },
                                 },
                             ],
                             envFrom: [{ configMapRef: { name: "ehk-config" } }],

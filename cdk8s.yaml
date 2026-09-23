@@ -13,6 +13,7 @@ imports:
   - helm:https://grafana.github.io/helm-charts/tempo@1.24.3
   - helm:https://traefik.github.io/charts/traefik@39.0.0
   - helm:https://open-telemetry.github.io/opentelemetry-helm-charts/opentelemetry-collector@0.143.0
+  - helm:https://seaweedfs.github.io/seaweedfs-operator/seaweedfs-operator@0.1.42
 
   # NOTE: You can only have one .yaml CRD file per API group (like networking.k8s.io),
   # as they don't get merged, instead the new one replaces the old one.
